@@ -1,0 +1,13 @@
+apiVersion: v1
+kind: Service
+metadata:
+  name: metadata-fed
+  labels:
+    app: metadata-fed
+spec:
+  ports:
+    - port: 9889
+      protocol: "TCP"
+      targetPort: 9889
+  selector:
+    app: metadata-fed

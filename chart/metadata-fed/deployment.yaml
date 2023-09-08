@@ -1,0 +1,22 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: metadata-fed
+spec:
+  selector:
+    matchLabels:
+      app: metadata-fed
+  replicas: 1
+  template:
+    metadata:
+      labels:
+        app: metadata-fed
+    spec:
+      containers:
+        - name: metadata-fed
+          image: hdruk/metadata-fed:latest
+          ports:
+            - containerPort: 9889
+              name: metadata-fed
+      dnsPolicy: ClusterFirst
+      
