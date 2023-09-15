@@ -5,7 +5,6 @@ on:
     branches:
       - dev
       - main
-      - GAT-2877
   pull_request:
     branches:
       - main
