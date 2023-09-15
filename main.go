@@ -13,7 +13,7 @@ import (
 func main() {
 	err := godotenv.Load()
 	if err != nil {
-		log.Fatal("can't read .env file. aborting")
+		log.Print("can't read .env file. aborting")
 	}
 
 	// Run the Push Service in it's own thread
