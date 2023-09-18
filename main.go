@@ -1,9 +1,9 @@
 package main
 
 import (
+	"fmt"
 	"hdruk/federated-metadata/pkg/pull"
 	"hdruk/federated-metadata/pkg/push"
-	"log"
 	"time"
 
 	"github.com/go-co-op/gocron"
@@ -13,7 +13,7 @@ import (
 func main() {
 	err := godotenv.Load()
 	if err != nil {
-		log.Print("can't read .env file. aborting")
+		fmt.Printf("can't read .env file. resorting to os variables\n")
 	}
 
 	// Run the Push Service in it's own thread
