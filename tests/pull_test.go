@@ -135,6 +135,7 @@ func TestGenerateHeaders(t *testing.T) {
 	fed := testGetFederations(t)
 
 	p := pull.NewPull(
+		fed[0].ID,
 		fmt.Sprintf("%s%s", fed[0].EndpointBaseURL, fed[0].EndpointDatasets),
 		fmt.Sprintf("%s%s", fed[0].EndpointBaseURL, fed[0].EndpointDataset),
 		"",
