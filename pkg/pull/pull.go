@@ -344,7 +344,7 @@ func checkStatus(statusCode int) (int, bool, error) {
 	case 501:
 		return statusCode, false, fmt.Errorf("request receveid HTTP 501 (Not Implemented)")
 	case 503:
-		return statusCode, false, fmt.Errorf("request receveid HTTP 501 (Gateway Timeout)")
+		return statusCode, false, fmt.Errorf("request receveid HTTP 503 (Gateway Timeout)")
 	}
 
 	return pkg.ERROR_UNKNOWN, false, nil
