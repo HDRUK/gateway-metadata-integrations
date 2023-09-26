@@ -34,7 +34,6 @@ func TestCredentialsHandler(c *gin.Context) {
 			fed.EndpointDataset),
 		"",
 		"",
-		// "eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzI1NiIsImtpZCI6ImYwODZlYjRkLTBkZDMtNGFkZi05Zjk0LTQ1YjhhNjE2ZjRiYSJ9.eyJleHAiOjE3MDIzMzkxOTksIm5iZiI6MTY5NDUyODY5NCwiaWF0IjoxNjk0NTI4Njk0LCJzdWIiOiJhYzkyM2I0ZC02NjE3LTQ5YzEtOTA0ZS05YTg1NDJmY2NlYWIiLCJpc3MiOiJodHRwczovL2ZhaXIucHJldmlldy5hcmlkaGlhLmlvL2FwaSIsImF1ZCI6InByZXZpZXciLCJ0b2tlbiI6ImhkcnVrLXRlc3QtaW50ZWdyYXRpb25zIn0.DLrsiL3iizV743kYsvQLECeh7-loGTE8C2IlOWRmPK8",
 		fed.AuthSecretKey,
 		fed.AuthType,
 		false,
@@ -76,8 +75,7 @@ func TestDatasetsEndpointHandler(c *gin.Context) {
 			fed.EndpointDataset),
 		"",
 		"",
-		"eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzI1NiIsImtpZCI6ImYwODZlYjRkLTBkZDMtNGFkZi05Zjk0LTQ1YjhhNjE2ZjRiYSJ9.eyJleHAiOjE3MDIzMzkxOTksIm5iZiI6MTY5NDUyODY5NCwiaWF0IjoxNjk0NTI4Njk0LCJzdWIiOiJhYzkyM2I0ZC02NjE3LTQ5YzEtOTA0ZS05YTg1NDJmY2NlYWIiLCJpc3MiOiJodHRwczovL2ZhaXIucHJldmlldy5hcmlkaGlhLmlvL2FwaSIsImF1ZCI6InByZXZpZXciLCJ0b2tlbiI6ImhkcnVrLXRlc3QtaW50ZWdyYXRpb25zIn0.DLrsiL3iizV743kYsvQLECeh7-loGTE8C2IlOWRmPK8",
-		// fed.AuthSecretKey,
+		fed.AuthSecretKey,
 		fed.AuthType,
 		false,
 	)
