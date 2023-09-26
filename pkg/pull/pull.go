@@ -60,18 +60,18 @@ func init() {
 func GetGatewayFederations() ([]pkg.Federation, error) {
 	req, err := http.NewRequest("GET", os.Getenv("GATEWAY_API_FEDERATIONS_URL"), nil)
 	if err != nil {
-		return []pkg.Federation{}, fmt.Errorf("unable to create new request for gateway api pull %s\n", err)
+		return []pkg.Federation{}, fmt.Errorf("unable to create new request for gateway api pull %v", err)
 	}
 
 	res, err := Client.Do(req)
 	if err != nil {
-		return []pkg.Federation{}, fmt.Errorf("unable to pull active federations from gateway api %s\n", err)
+		return []pkg.Federation{}, fmt.Errorf("unable to pull active federations from gateway api %v", err)
 	}
 	defer res.Body.Close()
 
 	body, err := io.ReadAll(res.Body)
 	if err != nil {
-		return []pkg.Federation{}, fmt.Errorf("unable to read body of response from gateway api %s\n", err)
+		return []pkg.Federation{}, fmt.Errorf("unable to read body of response from gateway api %v", err)
 	}
 
 	var feds []pkg.Federation
@@ -104,12 +104,10 @@ func InvalidateFederationDueToFailure(fed int) bool {
 	}
 	defer res.Body.Close()
 
-	body, err = io.ReadAll(res.Body)
+	_, err = io.ReadAll(res.Body)
 	if err != nil {
 		fmt.Printf("unable to read body of response from gateway api %v\n", err)
 	}
-
-	fmt.Printf("%s\n", body)
 
 	return true
 }
@@ -138,7 +136,9 @@ func (p *Pull) TestCredentials() (int, bool, error) {
 
 	p.GenerateHeaders(req)
 
-	fmt.Printf("%v", req)
+	if p.Verbose {
+		fmt.Printf("%v", req)
+	}
 
 	result, err := Client.Do(req)
 	if err != nil {
@@ -260,7 +260,9 @@ func (p *Pull) CallForDataset(id string) (string, error) {
 		return "", fmt.Errorf("unable to read body of call %v", err)
 	}
 
-	p.Dataset = string(body)
+	if p.Verbose {
+		p.Dataset = string(body)
+	}
 
 	return p.Dataset, nil
 }
@@ -312,7 +314,9 @@ func Run() {
 				fmt.Printf("%v\n", fmt.Errorf("unable to pull individual dataset: %v", err))
 			}
 
-			fmt.Printf("%s\n", datasetBody)
+			if p.Verbose {
+				fmt.Printf("%s\n", datasetBody)
+			}
 		}
 	}
 }
