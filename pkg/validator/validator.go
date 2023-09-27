@@ -1,0 +1,30 @@
+package validator
+
+import (
+	"fmt"
+
+	"github.com/xeipuuv/gojsonschema"
+)
+
+// ValidateSchema Attempts to validate a returned json object against
+// our json schema for federation services. Returns true on success,
+// false otherwise. Upon error, errors are output to stdout
+func ValidateSchema(document string) (bool, error) {
+	schemaLoader := gojsonschema.NewReferenceLoader("https://raw.githubusercontent.com/HDRUK/schemata/master/openapi/dataset.schema.json")
+	documentLoader := gojsonschema.NewStringLoader(document)
+
+	result, err := gojsonschema.Validate(schemaLoader, documentLoader)
+	if err != nil {
+		return false, err
+	}
+
+	if result.Valid() {
+		return true, nil
+	}
+
+	for _, desc := range result.Errors() {
+		fmt.Printf("- %s\n", desc)
+	}
+
+	return false, err
+}

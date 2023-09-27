@@ -55,3 +55,12 @@ type FederationItem struct {
 	Modified     string `json:"modified"`
 	Source       string `json:"source"`
 }
+
+type CreateSecretRequest struct {
+	Path     string `json:"path"`
+	SecretID string `json:"secret_id"`
+}
+
+type DeleteSecretRequest struct {
+	Name string `json:"name"`
+}

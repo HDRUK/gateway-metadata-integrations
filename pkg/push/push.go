@@ -2,6 +2,7 @@ package push
 
 import (
 	"fmt"
+	"hdruk/federated-metadata/pkg/routes"
 	"net/http"
 	"os"
 	"time"
@@ -22,11 +23,12 @@ func Run() bool {
 		MaxHeaderBytes: 1 << 20,
 	}
 
-	router.GET("/ping", func(c *gin.Context) {
-		c.JSON(http.StatusOK, gin.H{
-			"message": "pong",
-		})
-	})
+	// Defines routes and handlers for REST interface
+	router.GET("/ping", routes.PingHandler)
+	router.POST("/test/credentials", routes.TestCredentialsHandler)
+	router.POST("/test/endpoints", routes.TestDatasetsEndpointHandler)
+	router.POST("/federation", routes.CreateFederationHandler)
+	router.DELETE("/federation", routes.DeleteFederationHandler)
 
 	server.ListenAndServe()
 
