@@ -2,7 +2,6 @@ package main
 
 import (
 	"fmt"
-	"hdruk/federated-metadata/pkg/pull"
 	"hdruk/federated-metadata/pkg/push"
 	"time"
 
@@ -23,9 +22,11 @@ func main() {
 	scheduler := gocron.NewScheduler(time.UTC)
 	scheduler.SingletonModeAll()
 
-	scheduler.Every(10).Second().Do(func() {
-		pull.Run()
-	})
+	// TODO - reinstate this once we have federations
+	// to begin running.
+	// scheduler.Every(10).Second().Do(func() {
+	// 	pull.Run()
+	// })
 
 	scheduler.StartBlocking()
 }

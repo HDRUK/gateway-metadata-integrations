@@ -59,8 +59,88 @@ type FederationItem struct {
 type CreateSecretRequest struct {
 	Path     string `json:"path"`
 	SecretID string `json:"secret_id"`
+	Payload  string `json:"payload"`
 }
 
 type DeleteSecretRequest struct {
-	Name string `json:"name"`
+	SecretID string `json:"secret_id"`
+}
+
+type FederationDataset struct {
+	Indentifier   string        `json:"identifier"`
+	Version       string        `json:"version"`
+	Issued        string        `json:"issued"`
+	Modified      string        `json:"modified"`
+	Revisions     []string      `json:"revisions"`
+	Summary       Summary       `json:"summary"`
+	Documentation Documentation `json:"documentation"`
+	Coverage      Coverage      `json:"coverage"`
+	Provenance    Provenance    `json:"provenance"`
+	Accessibility Accessibility `json:"accessibility"`
+	Observations  Observations  `json:"observations"`
+}
+
+type Summary struct {
+	Title        string    `json:"title"`
+	Abstract     string    `json:"abstract"`
+	ContactPoint string    `json:"contactPoint"`
+	Keywords     []string  `json:"keywords"`
+	Publisher    Publisher `json:"publisher"`
+}
+
+type Publisher struct {
+	Name         string `json:"name"`
+	Logo         string `json:"logo"`
+	Description  string `json:"description"`
+	ContactPoint string `json:"contactPoint"`
+	MemberOf     string `json:"memberOf"`
+	AccessRights string `json:"accessRights"`
+}
+
+type Documentation struct {
+	Description string `json:"description"`
+}
+
+type Coverage struct {
+	Spatial string `json:"spatial"`
+}
+
+type Provenance struct {
+	Temporal Temporal `json:"temporal"`
+}
+
+type Temporal struct {
+	AccrualPeriodicity string `json:"accrualPeriodicity"`
+	StartDate          string `json:"startDate"`
+	TimeLag            string `json:"timeLag"`
+}
+
+type Accessibility struct {
+	Access             Access             `json:"access"`
+	Usage              Usage              `json:"usage"`
+	FormatAndStandards FormatAndStandards `json:"formatAndStandards"`
+}
+
+type Access struct {
+	AccessRights   string `json:"accessRights"`
+	Jurisdiction   string `json:"jurisdiction"`
+	DataController string `json:"dataController"`
+}
+
+type Usage struct {
+	DataUseLimitation string `json:"dataUseLimitation"`
+}
+
+type FormatAndStandards struct {
+	VocabularyEncodingScheme string `json:"vocabularyEncodingScheme"`
+	ConformsTo               string `json:"conformsTo"`
+	Language                 string `json:"language"`
+	Format                   string `json:"format"`
+}
+
+type Observations struct {
+	ObservedNode     string `json:"observedNode"`
+	MeasuredValue    string `json:"measuredValue"`
+	ObservationDate  string `json:"observationDate"`
+	MeasuredProperty string `json:"measuredProperty"`
 }

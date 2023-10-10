@@ -4,10 +4,10 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
+	"os"
 
 	secretmanager "cloud.google.com/go/secretmanager/apiv1"
 	"cloud.google.com/go/secretmanager/apiv1/secretmanagerpb"
-	"google.golang.org/api/iterator"
 )
 
 // Secrets Defines the shape of a gcloud secrets object
@@ -41,7 +41,7 @@ func (s *Secrets) GetSecret() (Token, error) {
 	defer client.Close()
 
 	req := &secretmanagerpb.AccessSecretVersionRequest{
-		Name: s.Version,
+		Name: fmt.Sprintf("%s/secrets/%s/versions/latest", os.Getenv("GOOGLE_APPLICATION_PROJECT_PATH"), s.Parent),
 	}
 
 	res, err := client.AccessSecretVersion(ctx, req)
@@ -58,7 +58,7 @@ func (s *Secrets) GetSecret() (Token, error) {
 // CreateSecret Attempts to create a new secret on the given `path`,
 // determined by `secretID` within gcloud. Returns the path on success
 // or an error otherwise.
-func (s *Secrets) CreateSecret(parent, secretID string) (string, error) {
+func (s *Secrets) CreateSecret(parent, secretID, payload string) (string, error) {
 	ctx := context.Background()
 	client, err := secretmanager.NewClient(ctx)
 	if err != nil {
@@ -69,7 +69,9 @@ func (s *Secrets) CreateSecret(parent, secretID string) (string, error) {
 	}
 	defer client.Close()
 
-	req := &secretmanagerpb.CreateSecretRequest{
+	fmt.Printf("%s %s", parent, secretID)
+
+	secretReq := &secretmanagerpb.CreateSecretRequest{
 		Parent:   parent,
 		SecretId: secretID,
 		Secret: &secretmanagerpb.Secret{
@@ -81,12 +83,25 @@ func (s *Secrets) CreateSecret(parent, secretID string) (string, error) {
 		},
 	}
 
-	result, err := client.CreateSecret(ctx, req)
+	result, err := client.CreateSecret(ctx, secretReq)
 	if err != nil {
 		return "", fmt.Errorf("failed to create secret: %v", err)
 	}
-	fmt.Printf("created secret: %s\n", result.Name)
-	return result.Name, nil
+	secretName := result.Name
+
+	versionReq := &secretmanagerpb.AddSecretVersionRequest{
+		Parent: result.Name,
+		Payload: &secretmanagerpb.SecretPayload{
+			Data: []byte(payload),
+		},
+	}
+
+	_, err = client.AddSecretVersion(ctx, versionReq)
+	if err != nil {
+		return "", fmt.Errorf("failed to create new secret version: %v", err)
+	}
+
+	return secretName, nil
 }
 
 // AddSecretVersion Updates a secret to the new `payload` incrementing
@@ -116,44 +131,9 @@ func (s *Secrets) AddSecretVersion(path string, payload []byte) (string, error) 
 	return result.Name, nil
 }
 
-// ListSecrets Returns a list of secrets held within gcloud. Does not return
-// the encryped payload, only the reference paths for said secrets. Returns
-// errors in parallel if any are encountered.
-func (s *Secrets) ListSecrets(parent string) (secrets []string, errors []error) {
-	ctx := context.Background()
-	client, err := secretmanager.NewClient(ctx)
-	if err != nil {
-		return secrets, append(errors, err)
-	}
-	defer client.Close()
-
-	req := &secretmanagerpb.ListSecretsRequest{
-		Parent: parent,
-	}
-
-	it := client.ListSecrets(ctx, req)
-	for {
-		resp, err := it.Next()
-		if err == iterator.Done {
-			break
-		}
-
-		if err != nil {
-			errors = append(errors, err)
-			secrets = append(secrets, "")
-			continue
-		}
-
-		secrets = append(secrets, resp.Name)
-		errors = append(errors, nil)
-	}
-
-	return secrets, errors
-}
-
 // DeleteSecret Attempts to delete a secret from within gcloud
 // secrets manager. Returns nil on success, error otherwise
-func (s *Secrets) DeleteSecret(name string) error {
+func (s *Secrets) DeleteSecret(secretID string) error {
 	ctx := context.Background()
 	client, err := secretmanager.NewClient(ctx)
 	if err != nil {
@@ -162,7 +142,7 @@ func (s *Secrets) DeleteSecret(name string) error {
 	defer client.Close()
 
 	req := &secretmanagerpb.DeleteSecretRequest{
-		Name: name,
+		Name: fmt.Sprintf("%s/secrets/%s", os.Getenv("GOOGLE_APPLICATION_PROJECT_PATH"), secretID),
 	}
 
 	if err := client.DeleteSecret(ctx, req); err != nil {
