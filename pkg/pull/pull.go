@@ -10,6 +10,7 @@ import (
 	"io"
 	"net/http"
 	"os"
+	"strconv"
 	"strings"
 )
 
@@ -228,19 +229,19 @@ func (p *Pull) CallForList() (pkg.FederationResponse, error) {
 
 // CallForDataset Is a subsequent step in the data pulling process. Issues
 // an HTTP request against an individual endpoint to probe for data
-func (p *Pull) CallForDataset(id string) (string, error) {
+func (p *Pull) CallForDataset(id string) (pkg.FederationDataset, error) {
 	datasetUriWithId := strings.ReplaceAll(p.DatasetUri, "{id}", id)
 
 	req, err := http.NewRequest("GET", datasetUriWithId, nil)
 	if err != nil {
-		return "", fmt.Errorf("unable to form new request with following error %v", err)
+		return pkg.FederationDataset{}, fmt.Errorf("unable to form new request with following error %v", err)
 	}
 
 	p.GenerateHeaders(req)
 
 	result, err := Client.Do(req)
 	if err != nil {
-		return "", fmt.Errorf("auth call failed with error %v", err)
+		return pkg.FederationDataset{}, fmt.Errorf("auth call failed with error %v", err)
 	}
 	defer result.Body.Close()
 
@@ -248,7 +249,7 @@ func (p *Pull) CallForDataset(id string) (string, error) {
 	if !successful {
 		InvalidateFederationDueToFailure(p.ID)
 		fmt.Printf("non 200 status returned %d flagging federation as invalid. Error: %v", status, err)
-		return "", err
+		return pkg.FederationDataset{}, err
 	}
 
 	if p.Verbose {
@@ -257,21 +258,17 @@ func (p *Pull) CallForDataset(id string) (string, error) {
 
 	body, err := io.ReadAll(result.Body)
 	if err != nil {
-		return "", fmt.Errorf("unable to read body of call %v", err)
+		return pkg.FederationDataset{}, fmt.Errorf("unable to read body of call %v", err)
 	}
 
-	if p.Verbose {
-		p.Dataset = string(body)
-	}
+	var dataset pkg.FederationDataset
+	json.Unmarshal(body, &dataset)
 
-	return p.Dataset, nil
+	return dataset, nil
 }
 
 // Run Runs the functionality of this process
 func Run() {
-	// Removed for now, as federations are dummy and will fail
-	// when calling via HTTP
-	//
 	// Firstly grab a list of all active federations in the api
 	feds, err := GetGatewayFederations()
 	if err != nil {
@@ -279,10 +276,11 @@ func Run() {
 	}
 	for _, fed := range feds {
 		// Next gather the gcloud secrets for this federation
-		sec := secrets.NewSecrets("", fed.AuthSecretKey)
+		sec := secrets.NewSecrets(fed.AuthSecretKey, "")
 		ret, err := sec.GetSecret()
 		if err != nil {
 			fmt.Printf("unable to retrieve secret from gcloud: %v\n", err)
+			return
 		}
 
 		fmt.Printf("%v", ret)
@@ -308,14 +306,56 @@ func Run() {
 		}
 
 		for _, item := range list.Items {
-			datasetBody, err := p.CallForDataset(item.PersistentID)
+			dataset, err := p.CallForDataset(item.PersistentID)
 			if err != nil {
 				InvalidateFederationDueToFailure(fed.ID)
 				fmt.Printf("%v\n", fmt.Errorf("unable to pull individual dataset: %v", err))
 			}
 
+			jsonString, err := json.Marshal(dataset)
+			if err != nil {
+				InvalidateFederationDueToFailure(fed.ID)
+				fmt.Printf("%v\n", fmt.Errorf("unable to marshal dataset to json: %v", err))
+			}
+
+			//////////////////////////////////////////////////////////////////////////////////////////////////
+			// TODO: This entire part will be broken for federation until federated results are in HDR 2.1.2
+			// format or GWDM. Comparitively what we're currently seeing matches nothing we're working
+			// towards
+			//////////////////////////////////////////////////////////////////////////////////////////////////
+
+			// Send the dataset to Gateway API for processing
+			body := map[string]string{
+				"team_id":           strconv.Itoa(fed.Team[0].ID),
+				"user_id":           os.Getenv("GATEWAY_API_USER_ID"),
+				"label":             dataset.Summary.Title,
+				"short_description": dataset.Summary.Abstract,
+				"dataset":           string(jsonString),
+			}
+
+			jsonPayload, _ := json.Marshal(body)
+
+			req, err := http.NewRequest("POST", os.Getenv("GATEWAY_API_FEDERATIONS_URL"),
+				bytes.NewBuffer(jsonPayload),
+			)
+			req.Header.Add("Content-Type", "application/json")
+
+			if err != nil {
+				fmt.Printf("%v\n", fmt.Errorf("unable to prepare gateway api call with processed dataset: %v", err))
+			}
+			result, err := Client.Do(req)
+			if err != nil {
+				fmt.Printf("%v\n", fmt.Errorf("unable to call gateway api with processed dataset: %v", err))
+			}
+			defer result.Body.Close()
+
+			bodyResponse, err := io.ReadAll(result.Body)
+			if err != nil {
+				fmt.Printf("%v\n", fmt.Errorf("unable to parse body of gateway api dataset store call: %v", err))
+			}
+
 			if p.Verbose {
-				fmt.Printf("%s\n", datasetBody)
+				fmt.Println(string(bodyResponse))
 			}
 		}
 	}

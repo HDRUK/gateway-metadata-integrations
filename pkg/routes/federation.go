@@ -21,15 +21,17 @@ func CreateFederationHandler(c *gin.Context) {
 			"message": "unable to decode request body",
 			"error":   err.Error(),
 		})
+		return
 	}
 
 	secretCtx := secrets.NewSecrets("", "")
-	resp, err := secretCtx.CreateSecret(cs.Path, cs.SecretID)
+	resp, err := secretCtx.CreateSecret(cs.Path, cs.SecretID, cs.Payload)
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{
 			"message": "unable to create new secret instance",
 			"error":   err.Error(),
 		})
+		return
 	}
 
 	c.JSON(http.StatusOK, gin.H{
@@ -55,12 +57,13 @@ func DeleteFederationHandler(c *gin.Context) {
 	}
 
 	secretCtx := secrets.NewSecrets("", "")
-	err = secretCtx.DeleteSecret(ds.Name)
+	err = secretCtx.DeleteSecret(ds.SecretID)
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{
 			"message": "unable to delete secret instance",
 			"error":   err.Error(),
 		})
+		return
 	}
 
 	c.JSON(http.StatusOK, gin.H{
