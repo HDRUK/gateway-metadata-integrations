@@ -143,7 +143,7 @@ func (p *Pull) TestCredentials() (int, bool, string, error) {
 
 	result, err := Client.Do(req)
 	if err != nil {
-		return result.StatusCode, false, "", err
+		return result.StatusCode, false, "Credentials Test", err
 	}
 	defer result.Body.Close()
 
@@ -163,7 +163,7 @@ func (p *Pull) TestDatasetsEndpoint() (int, bool, string, error) {
 
 	result, err := Client.Do(req)
 	if err != nil {
-		return result.StatusCode, false, "", err
+		return result.StatusCode, false, "Endpoints Test", err
 	}
 	defer result.Body.Close()
 
@@ -362,7 +362,7 @@ func Run() {
 }
 
 func returnFailedValidation() (int, bool, string, error) {
-	return 200, false, "", fmt.Errorf("test request failed to validate response against schema definition")
+	return 200, false, "", fmt.Errorf("%s", "test request failed to validate response against schema definition")
 }
 
 // checkStatus Returns based upon the received HTTP status code
@@ -372,20 +372,20 @@ func checkStatus(statusCode int) (int, bool, string, error) {
 	case 200:
 		return statusCode, true, "Test Successful", nil
 	case 400:
-		return statusCode, false, "Test Unsuccessful", fmt.Errorf("request received HTTP 400 (Bad Request)")
+		return statusCode, false, "Test Unsuccessful", fmt.Errorf("%s", "request received HTTP 400 (Bad Request)")
 	case 401:
-		return statusCode, false, "Test Unsuccessful", fmt.Errorf("request received HTTP 401 (Unauthorized)")
+		return statusCode, false, "Test Unsuccessful", fmt.Errorf("%s", "request received HTTP 401 (Unauthorized)")
 	case 403:
-		return statusCode, false, "Test Unsuccessful", fmt.Errorf("request received HTTP 403 (Forbidden)")
+		return statusCode, false, "Test Unsuccessful", fmt.Errorf("%s", "request received HTTP 403 (Forbidden)")
 	case 404:
-		return statusCode, false, "Test Unsuccessful", fmt.Errorf("request received HTTP 404 (Not Found)")
+		return statusCode, false, "Test Unsuccessful", fmt.Errorf("%s", "request received HTTP 404 (Not Found)")
 	case 500:
-		return statusCode, false, "Test Unsuccessful", fmt.Errorf("request received HTTP 500 (Internal Server Error)")
+		return statusCode, false, "Test Unsuccessful", fmt.Errorf("%s", "request received HTTP 500 (Internal Server Error)")
 	case 501:
-		return statusCode, false, "Test Unsuccessful", fmt.Errorf("request receveid HTTP 501 (Not Implemented)")
+		return statusCode, false, "Test Unsuccessful", fmt.Errorf("%s", "request receveid HTTP 501 (Not Implemented)")
 	case 503:
-		return statusCode, false, "Test Unsuccessful", fmt.Errorf("request receveid HTTP 503 (Gateway Timeout)")
+		return statusCode, false, "Test Unsuccessful", fmt.Errorf("%s", "request receveid HTTP 503 (Gateway Timeout)")
 	}
 
-	return pkg.ERROR_UNKNOWN, false, "Test Unsuccessful", fmt.Errorf("unknown error received")
+	return pkg.ERROR_UNKNOWN, false, "Test Unsuccessful", fmt.Errorf("%s", "unknown error received")
 }
