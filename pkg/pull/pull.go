@@ -129,10 +129,10 @@ func (p *Pull) GenerateHeaders(req *http.Request) {
 // TestCredentials Tests that we can access an external site given
 // the provided details. Returns true if the returned status code
 // is 200. False otherwise.
-func (p *Pull) TestCredentials() (int, bool, error) {
+func (p *Pull) TestCredentials() (int, bool, string, error) {
 	req, err := http.NewRequest("GET", p.DatasetsUri, nil)
 	if err != nil {
-		return pkg.ERROR_INVALID_HTTP_REQUEST, false, err
+		return pkg.ERROR_INVALID_HTTP_REQUEST, false, "Credentials Test", err
 	}
 
 	p.GenerateHeaders(req)
@@ -143,7 +143,7 @@ func (p *Pull) TestCredentials() (int, bool, error) {
 
 	result, err := Client.Do(req)
 	if err != nil {
-		return result.StatusCode, false, err
+		return result.StatusCode, false, "", err
 	}
 	defer result.Body.Close()
 
@@ -153,17 +153,17 @@ func (p *Pull) TestCredentials() (int, bool, error) {
 // TestDatasetsEndpoint Tests that we can access an external
 // datasets collection given the provided details. Returns true
 // if the returned status code is 200. False otherwise.
-func (p *Pull) TestDatasetsEndpoint() (int, bool, error) {
+func (p *Pull) TestDatasetsEndpoint() (int, bool, string, error) {
 	req, err := http.NewRequest("GET", p.DatasetsUri, nil)
 	if err != nil {
-		return pkg.ERROR_INVALID_HTTP_REQUEST, false, err
+		return pkg.ERROR_INVALID_HTTP_REQUEST, false, "Endpoints Test", err
 	}
 
 	p.GenerateHeaders(req)
 
 	result, err := Client.Do(req)
 	if err != nil {
-		return result.StatusCode, false, err
+		return result.StatusCode, false, "", err
 	}
 	defer result.Body.Close()
 
@@ -195,7 +195,7 @@ func (p *Pull) CallForList() (pkg.FederationResponse, error) {
 	}
 	defer result.Body.Close()
 
-	status, successful, err := checkStatus(result.StatusCode)
+	status, successful, _, err := checkStatus(result.StatusCode)
 	if !successful {
 		InvalidateFederationDueToFailure(p.ID)
 		fmt.Printf("non 200 status returned %d flagging federation as invalid. Error: %v", status, err)
@@ -245,7 +245,7 @@ func (p *Pull) CallForDataset(id string) (pkg.FederationDataset, error) {
 	}
 	defer result.Body.Close()
 
-	status, successful, err := checkStatus(result.StatusCode)
+	status, successful, _, err := checkStatus(result.StatusCode)
 	if !successful {
 		InvalidateFederationDueToFailure(p.ID)
 		fmt.Printf("non 200 status returned %d flagging federation as invalid. Error: %v", status, err)
@@ -361,31 +361,31 @@ func Run() {
 	}
 }
 
-func returnFailedValidation() (int, bool, error) {
-	return 200, false, fmt.Errorf("test request failed to validate response against schema definition")
+func returnFailedValidation() (int, bool, string, error) {
+	return 200, false, "", fmt.Errorf("test request failed to validate response against schema definition")
 }
 
 // checkStatus Returns based upon the received HTTP status code
 // from external server request
-func checkStatus(statusCode int) (int, bool, error) {
+func checkStatus(statusCode int) (int, bool, string, error) {
 	switch statusCode {
 	case 200:
-		return statusCode, true, nil
+		return statusCode, true, "Test Successful", nil
 	case 400:
-		return statusCode, false, fmt.Errorf("request received HTTP 400 (Bad Request)")
+		return statusCode, false, "Test Unsuccessful", fmt.Errorf("request received HTTP 400 (Bad Request)")
 	case 401:
-		return statusCode, false, fmt.Errorf("request received HTTP 401 (Unauthorized)")
+		return statusCode, false, "Test Unsuccessful", fmt.Errorf("request received HTTP 401 (Unauthorized)")
 	case 403:
-		return statusCode, false, fmt.Errorf("request received HTTP 403 (Forbidden)")
+		return statusCode, false, "Test Unsuccessful", fmt.Errorf("request received HTTP 403 (Forbidden)")
 	case 404:
-		return statusCode, false, fmt.Errorf("request received HTTP 404 (Not Found)")
+		return statusCode, false, "Test Unsuccessful", fmt.Errorf("request received HTTP 404 (Not Found)")
 	case 500:
-		return statusCode, false, fmt.Errorf("request received HTTP 500 (Internal Server Error)")
+		return statusCode, false, "Test Unsuccessful", fmt.Errorf("request received HTTP 500 (Internal Server Error)")
 	case 501:
-		return statusCode, false, fmt.Errorf("request receveid HTTP 501 (Not Implemented)")
+		return statusCode, false, "Test Unsuccessful", fmt.Errorf("request receveid HTTP 501 (Not Implemented)")
 	case 503:
-		return statusCode, false, fmt.Errorf("request receveid HTTP 503 (Gateway Timeout)")
+		return statusCode, false, "Test Unsuccessful", fmt.Errorf("request receveid HTTP 503 (Gateway Timeout)")
 	}
 
-	return pkg.ERROR_UNKNOWN, false, nil
+	return pkg.ERROR_UNKNOWN, false, "Test Unsuccessful", fmt.Errorf("unknown error received")
 }

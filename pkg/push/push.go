@@ -25,8 +25,7 @@ func Run() bool {
 
 	// Defines routes and handlers for REST interface
 	router.GET("/ping", routes.PingHandler)
-	router.POST("/test/credentials", routes.TestCredentialsHandler)
-	router.POST("/test/endpoints", routes.TestDatasetsEndpointHandler)
+	router.POST("/test", routes.TestFederationHandler)
 	router.POST("/federation", routes.CreateFederationHandler)
 	router.DELETE("/federation", routes.DeleteFederationHandler)
 
