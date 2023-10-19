@@ -117,7 +117,7 @@ func InvalidateFederationDueToFailure(fed int) bool {
 // for authentication
 func (p *Pull) GenerateHeaders(req *http.Request) {
 	switch strings.ToUpper(p.Method) {
-	case "BEARER_TOKEN":
+	case "BEARER":
 		req.Header.Add("Authorization", fmt.Sprintf("Bearer %s", p.AccessToken))
 	case "API_KEY":
 		req.Header.Add("apikey", p.AccessToken)
@@ -331,6 +331,7 @@ func Run() {
 				"label":             dataset.Summary.Title,
 				"short_description": dataset.Summary.Abstract,
 				"dataset":           string(jsonString),
+				"create_origin":     "FMA",
 			}
 
 			jsonPayload, _ := json.Marshal(body)

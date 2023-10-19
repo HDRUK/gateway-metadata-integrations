@@ -66,7 +66,7 @@ func TestFederationHandler(c *gin.Context) {
 		"status":  status,
 		"message": ret,
 		"title":   title,
-		"errors":  err.Error(),
+		"errors":  nil,
 	})
 	return
 }

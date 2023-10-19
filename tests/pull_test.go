@@ -66,7 +66,7 @@ func testGetFederations(t *testing.T) []pkg.Federation {
 	jsonString := `[
 		{
 			"id": 1,
-			"auth_type": "bearer_token",
+			"auth_type": "bearer",
 			"auth_secret_key": "projects/987760029877/secrets/dev-gateway-mfs-aridhia/versions/latest",
 			"endpoint_baseurl": "https://fair.preview.aridhia.io/api/syndication/hdruk",
 			"endpoint_datasets": "/datasets?assigned=true",
@@ -145,7 +145,7 @@ func TestGenerateHeaders(t *testing.T) {
 		false,
 	)
 
-	assert.EqualValues(t, "bearer_token", p.Method)
+	assert.EqualValues(t, "bearer", p.Method)
 	assert.EqualValues(t, "TEST-BEARER-TOKEN", p.AccessToken)
 }
 
