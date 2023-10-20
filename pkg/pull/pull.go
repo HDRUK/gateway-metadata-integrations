@@ -143,7 +143,7 @@ func (p *Pull) TestCredentials() (int, bool, string, error) {
 
 	result, err := Client.Do(req)
 	if err != nil {
-		return result.StatusCode, false, "Credentials Test", err
+		return http.StatusBadRequest, false, "Credentials Test", err
 	}
 	defer result.Body.Close()
 
@@ -163,7 +163,7 @@ func (p *Pull) TestDatasetsEndpoint() (int, bool, string, error) {
 
 	result, err := Client.Do(req)
 	if err != nil {
-		return result.StatusCode, false, "Endpoints Test", err
+		return http.StatusBadRequest, false, "Endpoints Test", err
 	}
 	defer result.Body.Close()
 
