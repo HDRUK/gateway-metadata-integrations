@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"hdruk/federated-metadata/pkg"
 	"hdruk/federated-metadata/pkg/pull"
+	"hdruk/federated-metadata/pkg/utils"
 	"net/http"
 
 	"github.com/gin-gonic/gin"
@@ -13,17 +14,17 @@ import (
 // TestFederationHandler will single handidly test each part of operation to
 // determine a successful federation configuration.
 func TestFederationHandler(c *gin.Context) {
+	var response interface{}
+
 	decoder := json.NewDecoder(c.Request.Body)
 	var fed pkg.Federation
 
 	err := decoder.Decode(&fed)
 	if err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{
-			"status":  http.StatusBadRequest,
-			"message": "unable to decode request body",
-			"title":   "unabled to decode request body",
-			"errors":  err.Error(),
-		})
+		c.JSON(http.StatusBadRequest, utils.FormResponse(http.StatusBadRequest,
+			false,
+			"unable to decode request body",
+			err.Error()))
 	}
 
 	// Create a new Pull Object to test this integration
@@ -40,33 +41,17 @@ func TestFederationHandler(c *gin.Context) {
 		false,
 	)
 
-	status, ret, title, err := p.TestCredentials()
-	if err != nil {
-		c.JSON(http.StatusOK, gin.H{
-			"status":  status,
-			"message": ret,
-			"title":   title,
-			"errors":  err.Error(),
-		})
+	response = p.TestCredentials()
+	if response.(gin.H)["error"] != "" {
+		c.JSON(http.StatusOK, response)
 		return
 	}
 
-	status, ret, title, err = p.TestDatasetsEndpoint()
-	if err != nil {
-		c.JSON(http.StatusOK, gin.H{
-			"status":  status,
-			"message": ret,
-			"title":   title,
-			"errors":  err.Error(),
-		})
+	response = p.TestDatasetsEndpoint()
+	if response.(gin.H)["error"] != "" {
+		c.JSON(http.StatusOK, response)
 		return
 	}
 
-	c.JSON(http.StatusOK, gin.H{
-		"status":  status,
-		"message": ret,
-		"title":   title,
-		"errors":  nil,
-	})
-	return
+	c.JSON(http.StatusOK, utils.FormResponse(http.StatusOK, true, "Test Successful", ""))
 }

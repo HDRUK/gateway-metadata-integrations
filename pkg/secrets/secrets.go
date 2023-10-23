@@ -5,6 +5,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"os"
+	"strings"
 
 	secretmanager "cloud.google.com/go/secretmanager/apiv1"
 	"cloud.google.com/go/secretmanager/apiv1/secretmanagerpb"
@@ -17,8 +18,14 @@ type Secrets struct {
 }
 
 // Token Defines the shape of a gcloud secrets object response
-type Token struct {
+type BearerTokenResponse struct {
 	BearerToken string `json:"bearer_token"`
+}
+
+type APIKeyResponse struct {
+	APIKey       string `json:"api_key"`
+	ClientID     string `json:"client_id"`
+	ClientSecret string `json:"client_secret"`
 }
 
 // NewSecrets Creates a new Secrets object for interfacing with
@@ -32,12 +39,13 @@ func NewSecrets(parent, version string) *Secrets {
 
 // GetSecret Returns the current secret version for this secrets
 // object version reference
-func (s *Secrets) GetSecret() (Token, error) {
+func (s *Secrets) GetSecret(authType string) (any, error) {
 	ctx := context.Background()
 	client, err := secretmanager.NewClient(ctx)
 	if err != nil {
-		return Token{}, fmt.Errorf("failed to create secretmanager client: %v", err)
+		return nil, fmt.Errorf("failed to create secretmanager client: %v", err)
 	}
+
 	defer client.Close()
 
 	req := &secretmanagerpb.AccessSecretVersionRequest{
@@ -46,13 +54,23 @@ func (s *Secrets) GetSecret() (Token, error) {
 
 	res, err := client.AccessSecretVersion(ctx, req)
 	if err != nil {
-		return Token{}, fmt.Errorf("failed to access secret version: %v", err)
+		return nil, fmt.Errorf("failed to access secret version: %v", err)
 	}
 
-	var token Token
-	json.Unmarshal(res.Payload.Data, &token)
+	switch strings.ToUpper(authType) {
+	case "BEARER":
+		var token BearerTokenResponse
+		json.Unmarshal(res.Payload.Data, &token)
+		return token, nil
+	case "API_KEY":
+		var token APIKeyResponse
+		json.Unmarshal(res.Payload.Data, &token)
+		return token, nil
+	case "NO_AUTH":
+		// Do nothing
+	}
 
-	return token, nil
+	return nil, fmt.Errorf("unable to determine auth type")
 }
 
 // CreateSecret Attempts to create a new secret on the given `path`,

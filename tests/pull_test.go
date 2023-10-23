@@ -8,58 +8,40 @@ import (
 	"fmt"
 	"hdruk/federated-metadata/pkg"
 	"hdruk/federated-metadata/pkg/pull"
-	"hdruk/federated-metadata/pkg/utils/mocks"
+	"hdruk/federated-metadata/pkg/secrets"
 	"hdruk/federated-metadata/pkg/validator"
 	"testing"
 
+	"github.com/joho/godotenv"
 	"github.com/stretchr/testify/assert"
 )
 
 var jsonString = `{
 	"items": [{
-		"name": "HDR syndication test 1 - stand cat. ",
 		"@schema": "https://raw.githubusercontent.com/HDRUK/schemata/master/schema/dataset/2.1.0/dataset.schema.json",
-		"description": "This dataset is being used to test the standard cat for syndicating with HDR UK. The dataset is set to private, with no access request. It includes 2 csv files and associated dictionaries with no lookups. ",
 		"type": "dataset",
-		"persistentId": "hdr_syndication_test_1___stand_cat__",
-		"self": "https://fair.preview.aridhia.io/api/datasets/hdr_syndication_test_1___stand_cat__",
-		"version": "1.0.0",
-		"issued": "2022-10-10T09:23:48.492Z",
-		"modified": "2023-03-14T13:03:17.736Z",
-		"source": "FAIR PM "
-	}, {
-		"name": "HDR syndication test 2 - stand cat. ",
-		"@schema": "https://raw.githubusercontent.com/HDRUK/schemata/master/schema/dataset/2.1.0/dataset.schema.json",
-		"description": "This dataset is being used to test the standard cat for syndicating with HDR UK. The dataset is set to public, with no access request. It includes 1 csv file and associated dictionary with no lookups. ",
-		"type": "dataset",
-		"persistentId": "hdr_syndication_test_2___stand_cat__",
-		"self": "https://fair.preview.aridhia.io/api/datasets/hdr_syndication_test_2___stand_cat__",
-		"version": "1.0.0",
-		"issued": "2022-10-10T09:45:36.074Z",
-		"modified": "2023-03-14T13:03:38.401Z",
-		"source": "FAIR "
-	}, {
-		"name": "hdr syndication test 3 - custom cat",
-		"@schema": "https://raw.githubusercontent.com/HDRUK/schemata/master/schema/dataset/2.1.0/dataset.schema.json",
-		"description": "Sample description here",
-		"type": "dataset",
-		"persistentId": "hdr_syndication_test_3___custom_cat",
-		"self": "https://fair.preview.aridhia.io/api/datasets/hdr_syndication_test_3___custom_cat",
-		"version": "0.0.0",
-		"issued": "2023-02-13T14:10:31.640Z",
-		"modified": "2023-09-04T10:53:01.239Z",
-		"source": "Aridhia DRE"
+		"persistentId": "edad35a6-3be0-4907-acf1-cc44b82b2342",
+		"self": "https://fair.preview.aridhia.io/api/datasets/edad35a6-3be0-4907-acf1-cc44b82b2342",
+		"name": "CHRIS - Return wind usually.",
+		"description": "Power their however power produce woman. Section drop successful. White within factor bring wear.",
+		"version": "11.0.0",
+		"issued": "2010-01-18T10:34:17Z",
+		"modified": "2015-12-09T05:21:42Z",
+		"source": "NHSD"
 	}],
 	"query": {
 		"q": "",
-		"total": 3,
+		"total": 1,
 		"limit": 0,
 		"offset": 0
 	}
 }`
 
 func init() {
-	pull.Client = &mocks.MockClient{}
+	err := godotenv.Load("../.env")
+	if err != nil {
+		fmt.Printf("can't read .env file. resorting to os variables\n")
+	}
 }
 
 func testGetFederations(t *testing.T) []pkg.Federation {
@@ -67,10 +49,10 @@ func testGetFederations(t *testing.T) []pkg.Federation {
 		{
 			"id": 1,
 			"auth_type": "bearer",
-			"auth_secret_key": "projects/987760029877/secrets/dev-gateway-mfs-aridhia/versions/latest",
-			"endpoint_baseurl": "https://fair.preview.aridhia.io/api/syndication/hdruk",
-			"endpoint_datasets": "/datasets?assigned=true",
-			"endpoint_dataset": "/datasets/{id}?assigned=true",
+			"auth_secret_key": "projects/987760029877/secrets/FMA_UAT_fma_test_team_new/versions/latest",
+			"endpoint_baseurl": "https://fma-custodian-test-server-pljgro4dzq-nw.a.run.app",
+			"endpoint_datasets": "/api/v1/datasets",
+			"endpoint_dataset": "/api/v1/datasets/{id}",
 			"run_time_hour": 12,
 			"enabled": true,
 			"created_at": "2023-09-15T16:13:30.000000Z",
@@ -152,20 +134,10 @@ func TestGenerateHeaders(t *testing.T) {
 func TestCallForList(t *testing.T) {
 	list := testGetList(t)
 
-	assert.EqualValues(t, "HDR syndication test 1 - stand cat. ", list.Items[0].Name)
-	assert.EqualValues(t, "hdr_syndication_test_1___stand_cat__", list.Items[0].PersistentID)
-	assert.EqualValues(t, "FAIR PM ", list.Items[0].Source)
+	assert.EqualValues(t, "CHRIS - Return wind usually.", list.Items[0].Name)
+	assert.EqualValues(t, "edad35a6-3be0-4907-acf1-cc44b82b2342", list.Items[0].PersistentID)
+	assert.EqualValues(t, "NHSD", list.Items[0].Source)
 	assert.EqualValues(t, "dataset", list.Items[0].Type)
-
-	assert.EqualValues(t, "HDR syndication test 2 - stand cat. ", list.Items[1].Name)
-	assert.EqualValues(t, "hdr_syndication_test_2___stand_cat__", list.Items[1].PersistentID)
-	assert.EqualValues(t, "FAIR ", list.Items[1].Source)
-	assert.EqualValues(t, "dataset", list.Items[1].Type)
-
-	assert.EqualValues(t, "hdr syndication test 3 - custom cat", list.Items[2].Name)
-	assert.EqualValues(t, "hdr_syndication_test_3___custom_cat", list.Items[2].PersistentID)
-	assert.EqualValues(t, "Aridhia DRE", list.Items[2].Source)
-	assert.EqualValues(t, "dataset", list.Items[2].Type)
 }
 
 func TestItCanValidateAgainstOurSchema(t *testing.T) {
@@ -174,3 +146,53 @@ func TestItCanValidateAgainstOurSchema(t *testing.T) {
 	assert.EqualValues(t, true, verdict)
 	assert.EqualValues(t, nil, err)
 }
+
+func TestItCanRetrieveAPIKeySecrets(t *testing.T) {
+	p := pull.NewPull(
+		1,
+		fmt.Sprintf("%s%s", "https://fma-custodian-test-server-pljgro4dzq-nw.a.run.app", "/api/v1/datasets"),
+		fmt.Sprintf("%s%s", "https://fma-custodian-test-server-pljgro4dzq-nw.a.run.app", "/api/v1/datasets/{id}"),
+		"",
+		"",
+		"FMA_UAT_fma_test_team_new",
+		"api_key",
+		true,
+	)
+
+	sec := secrets.NewSecrets(p.AccessToken, "")
+	ret, err := sec.GetSecret(p.Method)
+
+	assert.Equal(t, ret.(secrets.APIKeyResponse).ClientID, "ce26859054ec0c9")
+	assert.EqualValues(t, nil, err)
+}
+
+// REMOVED FOR NOW - ASK LOKI WHY...
+// func TestItReturns200OnValidCredentials(t *testing.T) {
+// 	sec := secrets.NewSecrets("FMA_UAT_fma_test_team_new", "")
+// 	ret, err := sec.GetSecret("api_key")
+// 	assert.EqualValues(t, err, nil)
+
+// 	var accessToken string
+// 	if reflect.TypeOf(ret).String() == "secrets.BearerTokenResponse" {
+// 		accessToken = ret.(secrets.BearerTokenResponse).BearerToken
+// 	} else if reflect.TypeOf(ret).String() == "secrets.APIKeyResponse" {
+// 		accessToken = ret.(secrets.APIKeyResponse).APIKey
+// 	} else { // NO_AUTH
+// 		accessToken = ""
+// 	}
+
+// 	p := pull.NewPull(
+// 		1,
+// 		fmt.Sprintf("%s%s", "https://fma-custodian-test-server-pljgro4dzq-nw.a.run.app", "/api/v1/datasets"),
+// 		fmt.Sprintf("%s%s", "https://fma-custodian-test-server-pljgro4dzq-nw.a.run.app", "/api/v1/datasets/{id}"),
+// 		"",
+// 		"",
+// 		accessToken,
+// 		"api_key",
+// 		true,
+// 	)
+
+// 	feds, err := p.CallForList()
+// 	assert.NotEmpty(t, feds)
+// 	assert.NotEmpty(t, err)
+// }
