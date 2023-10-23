@@ -314,9 +314,9 @@ func Run() {
 			fmt.Printf("%v", ret)
 
 			var accessToken string
-			if reflect.TypeOf(ret).String() == "BearerTokenResponse" {
+			if reflect.TypeOf(ret).String() == "secrets.BearerTokenResponse" {
 				accessToken = ret.(secrets.BearerTokenResponse).BearerToken
-			} else if reflect.TypeOf(ret).String() == "APIKeyResponse" {
+			} else if reflect.TypeOf(ret).String() == "secrets.APIKeyResponse" {
 				accessToken = ret.(secrets.APIKeyResponse).APIKey
 			} else { // NO_AUTH
 				accessToken = ""
