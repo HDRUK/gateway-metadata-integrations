@@ -2,6 +2,7 @@ package validator
 
 import (
 	"fmt"
+	"os"
 
 	"github.com/xeipuuv/gojsonschema"
 )
@@ -10,7 +11,7 @@ import (
 // our json schema for federation services. Returns true on success,
 // false otherwise. Upon error, errors are output to stdout
 func ValidateSchema(document string) (bool, error) {
-	schemaLoader := gojsonschema.NewReferenceLoader("https://raw.githubusercontent.com/HDRUK/schemata/master/openapi/dataset.schema.json")
+	schemaLoader := gojsonschema.NewReferenceLoader(os.Getenv("FMA_DEFAULT_SCHEMA_VALIDATION_URL"))
 	documentLoader := gojsonschema.NewStringLoader(document)
 
 	result, err := gojsonschema.Validate(schemaLoader, documentLoader)

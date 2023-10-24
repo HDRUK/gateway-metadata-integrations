@@ -6,12 +6,17 @@ import (
 	"fmt"
 	"hdruk/federated-metadata/pkg"
 	"hdruk/federated-metadata/pkg/secrets"
+	"hdruk/federated-metadata/pkg/utils"
 	"hdruk/federated-metadata/pkg/validator"
 	"io"
 	"net/http"
 	"os"
+	"reflect"
 	"strconv"
 	"strings"
+	"time"
+
+	"github.com/gin-gonic/gin"
 )
 
 // HTTPClient Defines an HTTPClient object
@@ -53,18 +58,32 @@ func NewPull(id int, datasetsUri, datasetUri, username, password, accessToken, m
 }
 
 func init() {
-	Client = &http.Client{}
+	timeoutSeconds, err := strconv.Atoi(os.Getenv("FMA_DEFAULT_TIMEOUT_SECONDS"))
+	if err != nil {
+		fmt.Printf("unable to determine default timeout value %v", err)
+		timeoutSeconds = 10
+	}
+
+	Client = &http.Client{
+		Timeout: time.Duration(timeoutSeconds) * time.Second,
+	}
 }
 
 // GetFederations Retrieves a list of active federations from the gateway-api
 // to run against during this pull cycle
 func GetGatewayFederations() ([]pkg.Federation, error) {
 	req, err := http.NewRequest("GET", os.Getenv("GATEWAY_API_FEDERATIONS_URL"), nil)
+	if os.IsTimeout(err) {
+		return []pkg.Federation{}, fmt.Errorf("http call timedout %v", err.Error())
+	}
 	if err != nil {
 		return []pkg.Federation{}, fmt.Errorf("unable to create new request for gateway api pull %v", err)
 	}
 
 	res, err := Client.Do(req)
+	if os.IsTimeout(err) {
+		return []pkg.Federation{}, fmt.Errorf("http call timedout %v", err)
+	}
 	if err != nil {
 		return []pkg.Federation{}, fmt.Errorf("unable to pull active federations from gateway api %v", err)
 	}
@@ -129,10 +148,10 @@ func (p *Pull) GenerateHeaders(req *http.Request) {
 // TestCredentials Tests that we can access an external site given
 // the provided details. Returns true if the returned status code
 // is 200. False otherwise.
-func (p *Pull) TestCredentials() (int, bool, string, error) {
+func (p *Pull) TestCredentials() gin.H {
 	req, err := http.NewRequest("GET", p.DatasetsUri, nil)
 	if err != nil {
-		return pkg.ERROR_INVALID_HTTP_REQUEST, false, "Credentials Test", err
+		return utils.FormResponse(pkg.ERROR_INVALID_HTTP_REQUEST, false, "Credentials Test", err.Error())
 	}
 
 	p.GenerateHeaders(req)
@@ -143,7 +162,7 @@ func (p *Pull) TestCredentials() (int, bool, string, error) {
 
 	result, err := Client.Do(req)
 	if err != nil {
-		return http.StatusBadRequest, false, "Credentials Test", err
+		return utils.FormResponse(http.StatusBadRequest, false, "Credentials Test", err.Error())
 	}
 	defer result.Body.Close()
 
@@ -153,17 +172,17 @@ func (p *Pull) TestCredentials() (int, bool, string, error) {
 // TestDatasetsEndpoint Tests that we can access an external
 // datasets collection given the provided details. Returns true
 // if the returned status code is 200. False otherwise.
-func (p *Pull) TestDatasetsEndpoint() (int, bool, string, error) {
+func (p *Pull) TestDatasetsEndpoint() gin.H {
 	req, err := http.NewRequest("GET", p.DatasetsUri, nil)
 	if err != nil {
-		return pkg.ERROR_INVALID_HTTP_REQUEST, false, "Endpoints Test", err
+		return utils.FormResponse(pkg.ERROR_INVALID_HTTP_REQUEST, false, "Endpoints Test", err.Error())
 	}
 
 	p.GenerateHeaders(req)
 
 	result, err := Client.Do(req)
 	if err != nil {
-		return http.StatusBadRequest, false, "Endpoints Test", err
+		return utils.FormResponse(http.StatusBadRequest, false, "Endpoints Tests", err.Error())
 	}
 	defer result.Body.Close()
 
@@ -190,15 +209,18 @@ func (p *Pull) CallForList() (pkg.FederationResponse, error) {
 	p.GenerateHeaders(req)
 
 	result, err := Client.Do(req)
+	if os.IsTimeout(err) {
+		fmt.Printf("http call timedout %v", err.Error())
+		return pkg.FederationResponse{}, err
+	}
 	if err != nil {
 		fmt.Printf("auth call failed with error %s\n", err)
 	}
 	defer result.Body.Close()
 
-	status, successful, _, err := checkStatus(result.StatusCode)
-	if !successful {
+	if !utils.IsSuccessfulStatusCode(result.StatusCode) {
 		InvalidateFederationDueToFailure(p.ID)
-		fmt.Printf("non 200 status returned %d flagging federation as invalid. Error: %v", status, err)
+		fmt.Printf("non 200 status returned %d flagging federation as invalid. Error: %v", result.StatusCode, err)
 		return pkg.FederationResponse{}, err
 	}
 
@@ -240,15 +262,19 @@ func (p *Pull) CallForDataset(id string) (pkg.FederationDataset, error) {
 	p.GenerateHeaders(req)
 
 	result, err := Client.Do(req)
+	if os.IsTimeout(err) {
+		fmt.Printf("http call timedout %v", err.Error())
+		return pkg.FederationDataset{}, err
+	}
+
 	if err != nil {
 		return pkg.FederationDataset{}, fmt.Errorf("auth call failed with error %v", err)
 	}
 	defer result.Body.Close()
 
-	status, successful, _, err := checkStatus(result.StatusCode)
-	if !successful {
+	if !utils.IsSuccessfulStatusCode(result.StatusCode) {
 		InvalidateFederationDueToFailure(p.ID)
-		fmt.Printf("non 200 status returned %d flagging federation as invalid. Error: %v", status, err)
+		fmt.Printf("non 200 status returned %d flagging federation as invalid. Error: %v", result.StatusCode, err)
 		return pkg.FederationDataset{}, err
 	}
 
@@ -275,118 +301,146 @@ func Run() {
 		fmt.Printf("%v\n", err.Error())
 	}
 	for _, fed := range feds {
-		// Next gather the gcloud secrets for this federation
-		sec := secrets.NewSecrets(fed.AuthSecretKey, "")
-		ret, err := sec.GetSecret()
-		if err != nil {
-			fmt.Printf("unable to retrieve secret from gcloud: %v\n", err)
-			return
-		}
-
-		fmt.Printf("%v", ret)
-
-		// Create a new Pull object to action the request
-		p := NewPull(
-			fed.ID,
-			fmt.Sprintf("%s%s", fed.EndpointBaseURL, fed.EndpointDatasets),
-			fmt.Sprintf("%s%s", fed.EndpointBaseURL, fed.EndpointDataset),
-			"",
-			"",
-			ret.BearerToken,
-			fed.AuthType,
-			true,
-		)
-
-		list, err := p.CallForList()
-		if err != nil {
-			// Invalidate this federation as it has received an error
-			InvalidateFederationDueToFailure(fed.ID)
-
-			fmt.Printf("%v\n", fmt.Errorf("unable to validate provided payload against our schema: %v", err))
-		}
-
-		for _, item := range list.Items {
-			dataset, err := p.CallForDataset(item.PersistentID)
+		// Determine if it is time to run this federation
+		if isTimeToRun(&fed) {
+			// Next gather the gcloud secrets for this federation
+			sec := secrets.NewSecrets(fed.AuthSecretKey, "")
+			ret, err := sec.GetSecret(fed.AuthType)
 			if err != nil {
-				InvalidateFederationDueToFailure(fed.ID)
-				fmt.Printf("%v\n", fmt.Errorf("unable to pull individual dataset: %v", err))
+				fmt.Printf("unable to retrieve secret from gcloud: %v\n", err)
+				continue
 			}
 
-			jsonString, err := json.Marshal(dataset)
-			if err != nil {
-				InvalidateFederationDueToFailure(fed.ID)
-				fmt.Printf("%v\n", fmt.Errorf("unable to marshal dataset to json: %v", err))
+			fmt.Printf("%v", ret)
+
+			var accessToken string
+			if reflect.TypeOf(ret).String() == "secrets.BearerTokenResponse" {
+				accessToken = ret.(secrets.BearerTokenResponse).BearerToken
+			} else if reflect.TypeOf(ret).String() == "secrets.APIKeyResponse" {
+				accessToken = ret.(secrets.APIKeyResponse).APIKey
+			} else { // NO_AUTH
+				accessToken = ""
 			}
 
-			//////////////////////////////////////////////////////////////////////////////////////////////////
-			// TODO: This entire part will be broken for federation until federated results are in HDR 2.1.2
-			// format or GWDM. Comparitively what we're currently seeing matches nothing we're working
-			// towards
-			//////////////////////////////////////////////////////////////////////////////////////////////////
-
-			// Send the dataset to Gateway API for processing
-			body := map[string]string{
-				"team_id":           strconv.Itoa(fed.Team[0].ID),
-				"user_id":           os.Getenv("GATEWAY_API_USER_ID"),
-				"label":             dataset.Summary.Title,
-				"short_description": dataset.Summary.Abstract,
-				"dataset":           string(jsonString),
-				"create_origin":     "FMA",
-			}
-
-			jsonPayload, _ := json.Marshal(body)
-
-			req, err := http.NewRequest("POST", os.Getenv("GATEWAY_API_FEDERATIONS_URL"),
-				bytes.NewBuffer(jsonPayload),
+			// Create a new Pull object to action the request
+			p := NewPull(
+				fed.ID,
+				fmt.Sprintf("%s%s", fed.EndpointBaseURL, fed.EndpointDatasets),
+				fmt.Sprintf("%s%s", fed.EndpointBaseURL, fed.EndpointDataset),
+				"",
+				"",
+				accessToken,
+				fed.AuthType,
+				true,
 			)
-			req.Header.Add("Content-Type", "application/json")
 
+			list, err := p.CallForList()
 			if err != nil {
-				fmt.Printf("%v\n", fmt.Errorf("unable to prepare gateway api call with processed dataset: %v", err))
-			}
-			result, err := Client.Do(req)
-			if err != nil {
-				fmt.Printf("%v\n", fmt.Errorf("unable to call gateway api with processed dataset: %v", err))
-			}
-			defer result.Body.Close()
+				// Invalidate this federation as it has received an error
+				InvalidateFederationDueToFailure(fed.ID)
 
-			bodyResponse, err := io.ReadAll(result.Body)
-			if err != nil {
-				fmt.Printf("%v\n", fmt.Errorf("unable to parse body of gateway api dataset store call: %v", err))
+				fmt.Printf("%v\n", fmt.Errorf("unable to validate provided payload against our schema: %v", err))
 			}
 
-			if p.Verbose {
-				fmt.Println(string(bodyResponse))
+			for _, item := range list.Items {
+				dataset, err := p.CallForDataset(item.PersistentID)
+				if err != nil {
+					InvalidateFederationDueToFailure(fed.ID)
+					fmt.Printf("%v\n", fmt.Errorf("unable to pull individual dataset: %v", err))
+				}
+
+				jsonString, err := json.Marshal(dataset)
+				if err != nil {
+					InvalidateFederationDueToFailure(fed.ID)
+					fmt.Printf("%v\n", fmt.Errorf("unable to marshal dataset to json: %v", err))
+				}
+
+				//////////////////////////////////////////////////////////////////////////////////////////////////
+				// TODO: This entire part will be broken for federation until federated results are in HDR 2.1.2
+				// format or GWDM. Comparitively what we're currently seeing matches nothing we're working
+				// towards
+				//////////////////////////////////////////////////////////////////////////////////////////////////
+
+				// Send the dataset to Gateway API for processing
+				body := map[string]string{
+					"team_id":           strconv.Itoa(fed.Team[0].ID),
+					"user_id":           os.Getenv("GATEWAY_API_USER_ID"),
+					"label":             dataset.Summary.Title,
+					"short_description": dataset.Summary.Abstract,
+					"dataset":           string(jsonString),
+					"create_origin":     "FMA",
+				}
+
+				jsonPayload, _ := json.Marshal(body)
+
+				req, err := http.NewRequest("POST", os.Getenv("GATEWAY_API_FEDERATIONS_URL"),
+					bytes.NewBuffer(jsonPayload),
+				)
+
+				if os.IsTimeout(err) {
+					fmt.Printf("http call timedout %v", err.Error())
+				}
+				req.Header.Add("Content-Type", "application/json")
+
+				if err != nil {
+					fmt.Printf("%v\n", fmt.Errorf("unable to prepare gateway api call with processed dataset: %v", err))
+				}
+				result, err := Client.Do(req)
+				if err != nil {
+					fmt.Printf("%v\n", fmt.Errorf("unable to call gateway api with processed dataset: %v", err))
+				}
+				defer result.Body.Close()
+
+				bodyResponse, err := io.ReadAll(result.Body)
+				if err != nil {
+					fmt.Printf("%v\n", fmt.Errorf("unable to parse body of gateway api dataset store call: %v", err))
+				}
+
+				if p.Verbose {
+					fmt.Println(string(bodyResponse))
+				}
 			}
 		}
+		continue
 	}
 }
 
-func returnFailedValidation() (int, bool, string, error) {
-	return 200, false, "", fmt.Errorf("%s", "test request failed to validate response against schema definition")
+// isTimeToRun Helper function to determine if this federation can
+// run based on current time (hour) vs that of configuration in
+// federated object
+func isTimeToRun(fed *pkg.Federation) bool {
+	dt := time.Now()
+	fmt.Printf("current federation (%d) is not ready to run (current hour: %d) vs (configured hour: %d)",
+		fed.ID, fed.RunTimeHour, dt.Hour())
+	return dt.Hour() == fed.RunTimeHour
+}
+
+func returnFailedValidation() gin.H {
+	return utils.FormResponse(http.StatusOK, false, "Schema Validation Failed",
+		fmt.Errorf("%s", "test request failed to validate response against schema definition").Error())
 }
 
 // checkStatus Returns based upon the received HTTP status code
 // from external server request
-func checkStatus(statusCode int) (int, bool, string, error) {
+func checkStatus(statusCode int) gin.H {
 	switch statusCode {
 	case 200:
-		return statusCode, true, "Test Successful", nil
+		return utils.FormResponse(statusCode, true, "Test Successful", "nil")
 	case 400:
-		return statusCode, false, "Test Unsuccessful", fmt.Errorf("%s", "request received HTTP 400 (Bad Request)")
+		return utils.FormResponse(statusCode, false, "Test Unsuccessful", fmt.Errorf("%s", "request received HTTP 400 (Bad Request)").Error())
 	case 401:
-		return statusCode, false, "Test Unsuccessful", fmt.Errorf("%s", "request received HTTP 401 (Unauthorized)")
+		return utils.FormResponse(statusCode, false, "Test Unsuccessful", fmt.Errorf("%s", "request received HTTP 401 (Unauthorized)").Error())
 	case 403:
-		return statusCode, false, "Test Unsuccessful", fmt.Errorf("%s", "request received HTTP 403 (Forbidden)")
+		return utils.FormResponse(statusCode, false, "Test Unsuccessful", fmt.Errorf("%s", "request received HTTP 403 (Forbidden)").Error())
 	case 404:
-		return statusCode, false, "Test Unsuccessful", fmt.Errorf("%s", "request received HTTP 404 (Not Found)")
+		return utils.FormResponse(statusCode, false, "Test Unsuccessful", fmt.Errorf("%s", "request received HTTP 404 (Not Found)").Error())
 	case 500:
-		return statusCode, false, "Test Unsuccessful", fmt.Errorf("%s", "request received HTTP 500 (Internal Server Error)")
+		return utils.FormResponse(statusCode, false, "Test Unsuccessful", fmt.Errorf("%s", "request received HTTP 500 (Internal Server Error)").Error())
 	case 501:
-		return statusCode, false, "Test Unsuccessful", fmt.Errorf("%s", "request receveid HTTP 501 (Not Implemented)")
+		return utils.FormResponse(statusCode, false, "Test Unsuccessful", fmt.Errorf("%s", "request receveid HTTP 501 (Not Implemented)").Error())
 	case 503:
-		return statusCode, false, "Test Unsuccessful", fmt.Errorf("%s", "request receveid HTTP 503 (Gateway Timeout)")
+		return utils.FormResponse(statusCode, false, "Test Unsuccessful", fmt.Errorf("%s", "request receveid HTTP 503 (Gateway Timeout)").Error())
 	}
 
-	return pkg.ERROR_UNKNOWN, false, "Test Unsuccessful", fmt.Errorf("%s", "unknown error received")
+	return utils.FormResponse(pkg.ERROR_UNKNOWN, false, "Test Unsuccessful", fmt.Errorf("%s", "unknown error received").Error())
 }
