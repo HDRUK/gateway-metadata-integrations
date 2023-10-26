@@ -1,7 +1,6 @@
 package main
 
 import (
-	"hdruk/federated-metadata/pkg/pull"
 	"hdruk/federated-metadata/pkg/push"
 	"hdruk/federated-metadata/pkg/utils"
 	"time"
@@ -25,9 +24,9 @@ func main() {
 
 	// TODO - reinstate this once we have federations
 	// to begin running.
-	scheduler.Every(1).Minute().Do(func() {
-		pull.Run()
-	})
+	// scheduler.Every(1).Minute().Do(func() {
+	// 	pull.Run()
+	// })
 
 	scheduler.StartBlocking()
 }
