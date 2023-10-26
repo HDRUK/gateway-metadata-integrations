@@ -1,8 +1,9 @@
 package main
 
 import (
-	"fmt"
+	"hdruk/federated-metadata/pkg/pull"
 	"hdruk/federated-metadata/pkg/push"
+	"hdruk/federated-metadata/pkg/utils"
 	"time"
 
 	"github.com/go-co-op/gocron"
@@ -12,7 +13,7 @@ import (
 func main() {
 	err := godotenv.Load()
 	if err != nil {
-		fmt.Printf("can't read .env file. resorting to os variables\n")
+		utils.WriteGatewayAudit("can't read .env file. resorting to OS variables", "CONFIG")
 	}
 
 	// Run the Push Service in it's own thread
@@ -24,9 +25,9 @@ func main() {
 
 	// TODO - reinstate this once we have federations
 	// to begin running.
-	// scheduler.Every(1).Minute().Do(func() {
-	// 	pull.Run()
-	// })
+	scheduler.Every(1).Minute().Do(func() {
+		pull.Run()
+	})
 
 	scheduler.StartBlocking()
 }
