@@ -13,8 +13,6 @@ import (
 
 // Run Runs our Push API service
 func Run() bool {
-	finished := make(chan bool)
-
 	router := gin.Default()
 
 	router.Use(cors.New(cors.Config{
@@ -41,7 +39,5 @@ func Run() bool {
 	router.DELETE("/federation", routes.DeleteFederationHandler)
 
 	server.ListenAndServe()
-
-	finished <- true
 	return true
 }

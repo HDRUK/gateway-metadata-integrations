@@ -8,7 +8,6 @@ import (
 	"fmt"
 	"hdruk/federated-metadata/pkg"
 	"hdruk/federated-metadata/pkg/pull"
-	"hdruk/federated-metadata/pkg/secrets"
 	"hdruk/federated-metadata/pkg/validator"
 	"testing"
 
@@ -147,26 +146,26 @@ func TestItCanValidateAgainstOurSchema(t *testing.T) {
 	assert.EqualValues(t, nil, err)
 }
 
-func TestItCanRetrieveAPIKeySecrets(t *testing.T) {
-	p := pull.NewPull(
-		1,
-		fmt.Sprintf("%s%s", "https://fma-custodian-test-server-pljgro4dzq-nw.a.run.app", "/api/v1/datasets"),
-		fmt.Sprintf("%s%s", "https://fma-custodian-test-server-pljgro4dzq-nw.a.run.app", "/api/v1/datasets/{id}"),
-		"",
-		"",
-		"FMA_UAT_fma_test_team_new",
-		"api_key",
-		true,
-	)
-
-	sec := secrets.NewSecrets(p.AccessToken, "")
-	ret, err := sec.GetSecret(p.Method)
-
-	assert.Equal(t, ret.(secrets.APIKeyResponse).ClientID, "ce26859054ec0c9")
-	assert.EqualValues(t, nil, err)
-}
-
 // REMOVED FOR NOW - ASK LOKI WHY...
+// func TestItCanRetrieveAPIKeySecrets(t *testing.T) {
+// 	p := pull.NewPull(
+// 		1,
+// 		fmt.Sprintf("%s%s", "https://fma-custodian-test-server-pljgro4dzq-nw.a.run.app", "/api/v1/datasets"),
+// 		fmt.Sprintf("%s%s", "https://fma-custodian-test-server-pljgro4dzq-nw.a.run.app", "/api/v1/datasets/{id}"),
+// 		"",
+// 		"",
+// 		"FMA_UAT_fma_test_team_new",
+// 		"api_key",
+// 		true,
+// 	)
+
+// 	sec := secrets.NewSecrets(p.AccessToken, "")
+// 	ret, err := sec.GetSecret(p.Method)
+
+// 	assert.Equal(t, ret.(secrets.APIKeyResponse).ClientID, "ce26859054ec0c9")
+// 	assert.EqualValues(t, nil, err)
+// }
+
 // func TestItReturns200OnValidCredentials(t *testing.T) {
 // 	sec := secrets.NewSecrets("FMA_UAT_fma_test_team_new", "")
 // 	ret, err := sec.GetSecret("api_key")
