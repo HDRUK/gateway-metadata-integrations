@@ -9,11 +9,16 @@ import (
 	"hdruk/federated-metadata/pkg"
 	"hdruk/federated-metadata/pkg/pull"
 	"hdruk/federated-metadata/pkg/validator"
+	"log"
 	"testing"
 
 	"github.com/joho/godotenv"
-	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/suite"
 )
+
+type PullTestSuite struct {
+	suite.Suite
+}
 
 var jsonString = `{
 	"items": [{
@@ -36,14 +41,14 @@ var jsonString = `{
 	}
 }`
 
-func init() {
+func (t *PullTestSuite) SetUpTest() {
 	err := godotenv.Load("../.env")
 	if err != nil {
-		fmt.Printf("can't read .env file. resorting to os variables\n")
+		log.Fatal(err)
 	}
 }
 
-func testGetFederations(t *testing.T) []pkg.Federation {
+func (t *PullTestSuite) testGetFederations() []pkg.Federation {
 	jsonString := `[
 		{
 			"id": 1,
@@ -86,34 +91,28 @@ func testGetFederations(t *testing.T) []pkg.Federation {
 
 	var feds []pkg.Federation
 
-	err := json.Unmarshal(([]byte(jsonString)), &feds)
-	if err != nil {
-		t.Fatal(err.Error())
-	}
-
+	_ = json.Unmarshal(([]byte(jsonString)), &feds)
 	return feds
 }
 
-func testGetList(t *testing.T) pkg.FederationResponse {
+func testGetList(t *PullTestSuite) pkg.FederationResponse {
 	var resp pkg.FederationResponse
 
 	err := json.Unmarshal(([]byte(jsonString)), &resp)
-	if err != nil {
-		t.Fatal(err.Error())
-	}
+	t.Equal(nil, err)
 
 	return resp
 }
 
-func TestGetGatewayFederations(t *testing.T) {
-	federations := testGetFederations(t)
+func (t *PullTestSuite) TestGetGatewayFederations() {
+	federations := t.testGetFederations()
 
-	assert.EqualValues(t, 1, federations[0].ID)
-	assert.EqualValues(t, 18, federations[0].Team[0].ID)
+	t.Equal(1, federations[0].ID)
+	t.Equal(18, federations[0].Team[0].ID)
 }
 
-func TestGenerateHeaders(t *testing.T) {
-	fed := testGetFederations(t)
+func (t *PullTestSuite) TestGenerateHeaders() {
+	fed := t.testGetFederations()
 
 	p := pull.NewPull(
 		fed[0].ID,
@@ -126,24 +125,31 @@ func TestGenerateHeaders(t *testing.T) {
 		false,
 	)
 
-	assert.EqualValues(t, "bearer", p.Method)
-	assert.EqualValues(t, "TEST-BEARER-TOKEN", p.AccessToken)
+	t.Equal("bearer", p.Method)
+	t.Equal("TEST-BEARER-TOKEN", p.AccessToken)
 }
 
-func TestCallForList(t *testing.T) {
+func (t *PullTestSuite) TestCallForList() {
 	list := testGetList(t)
 
-	assert.EqualValues(t, "CHRIS - Return wind usually.", list.Items[0].Name)
-	assert.EqualValues(t, "edad35a6-3be0-4907-acf1-cc44b82b2342", list.Items[0].PersistentID)
-	assert.EqualValues(t, "NHSD", list.Items[0].Source)
-	assert.EqualValues(t, "dataset", list.Items[0].Type)
+	t.Equal("CHRIS - Return wind usually.", list.Items[0].Name)
+	t.Equal("edad35a6-3be0-4907-acf1-cc44b82b2342", list.Items[0].PersistentID)
+	t.Equal("NHSD", list.Items[0].Source)
+	t.Equal("dataset", list.Items[0].Type)
 }
 
-func TestItCanValidateAgainstOurSchema(t *testing.T) {
+func (t *PullTestSuite) TestItCanValidateAgainstOurSchema() {
 	verdict, err := validator.ValidateSchema(jsonString)
+	fmt.Printf("%+v\n\n", err.Error())
 
-	assert.EqualValues(t, true, verdict)
-	assert.EqualValues(t, nil, err)
+	t.Nil(err)
+
+	t.Equal(true, verdict)
+	t.Equal(nil, err)
+}
+
+func TestPullTestSuite(t *testing.T) {
+	suite.Run(t, new(PullTestSuite))
 }
 
 // REMOVED FOR NOW - ASK LOKI WHY...

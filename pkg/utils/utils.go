@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"net/http"
 	"os"
+	"strconv"
 
 	"github.com/gin-gonic/gin"
 )
@@ -34,6 +35,15 @@ func IsSuccessfulStatusCode(status int) bool {
 // WriteGatewayAudit Helper function to write logs to the gateway api audit
 // log
 func WriteGatewayAudit(message, actionType string) {
+	enabled, err := strconv.Atoi(os.Getenv("GATEWAY_AUDIT_ENABLED"))
+	if err != nil {
+		enabled = 0 // couldn't read config, so avoid spamming the API
+	}
+
+	if enabled != 1 {
+		return
+	}
+
 	payload := []byte(
 		fmt.Sprintf(`{
 			"user_id": %d,
