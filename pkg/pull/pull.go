@@ -390,144 +390,159 @@ func Run() {
 	}
 	for _, fed := range feds {
 		// Determine if it is time to run this federation
-		if isTimeToRun(&fed) {
-			// Next gather the gcloud secrets for this federation
-			sec := secrets.NewSecrets(fed.AuthSecretKey, "")
-			ret, err := sec.GetSecret(fed.AuthType)
-			if err != nil {
-				customMsg = "unable to retrieve secrets from gcloud"
-				utils.WriteGatewayAudit(fmt.Sprintf("%s: %v", customMsg, err.Error()), customAction)
+		// if isTimeToRun(&fed) {
+		// Next gather the gcloud secrets for this federation
+		sec := secrets.NewSecrets(fed.AuthSecretKey, "")
+		ret, err := sec.GetSecret(fed.AuthType)
+		if err != nil {
+			customMsg = "unable to retrieve secrets from gcloud"
+			utils.WriteGatewayAudit(fmt.Sprintf("%s: %v", customMsg, err.Error()), customAction)
 
-				continue
-			}
+			continue
+		}
 
-			var accessToken string
-			if reflect.TypeOf(ret).String() == "secrets.BearerTokenResponse" {
-				accessToken = ret.(secrets.BearerTokenResponse).BearerToken
-			} else if reflect.TypeOf(ret).String() == "secrets.APIKeyResponse" {
-				accessToken = ret.(secrets.APIKeyResponse).APIKey
-			} else { // NO_AUTH
-				accessToken = ""
-			}
+		var accessToken string
+		if reflect.TypeOf(ret).String() == "secrets.BearerTokenResponse" {
+			accessToken = ret.(secrets.BearerTokenResponse).BearerToken
+		} else if reflect.TypeOf(ret).String() == "secrets.APIKeyResponse" {
+			accessToken = ret.(secrets.APIKeyResponse).APIKey
+		} else { // NO_AUTH
+			accessToken = ""
+		}
 
-			// Create a new Pull object to action the request
-			p := NewPull(
-				fed.ID,
-				fmt.Sprintf("%s%s", fed.EndpointBaseURL, fed.EndpointDatasets),
-				fmt.Sprintf("%s%s", fed.EndpointBaseURL, fed.EndpointDataset),
-				"",
-				"",
-				accessToken,
-				fed.AuthType,
-				true,
-			)
+		// Create a new Pull object to action the request
+		p := NewPull(
+			fed.ID,
+			fmt.Sprintf("%s%s", fed.EndpointBaseURL, fed.EndpointDatasets),
+			fmt.Sprintf("%s%s", fed.EndpointBaseURL, fed.EndpointDataset),
+			"",
+			"",
+			accessToken,
+			fed.AuthType,
+			true,
+		)
 
-			list, err := p.CallForList()
-			if err != nil {
-				// Invalidate this federation as it has received an error
-				InvalidateFederationDueToFailure(fed.ID)
+		list, err := p.CallForList()
+		if err != nil {
+			// Invalidate this federation as it has received an error
+			InvalidateFederationDueToFailure(fed.ID)
 
-				customMsg = "unable to validate provided payload against our schema"
-				utils.WriteGatewayAudit(fmt.Sprintf("%s: %v", customMsg, err.Error()), customAction)
+			customMsg = "unable to validate provided payload against our schema"
+			utils.WriteGatewayAudit(fmt.Sprintf("%s: %v", customMsg, err.Error()), customAction)
 
-				if p.Verbose {
-					fmt.Printf("%v\n", fmt.Errorf("unable to validate provided payload against our schema: %v", err))
-				}
-			}
-
-			for _, item := range list.Items {
-				dataset, err := p.CallForDataset(item.PersistentID)
-				if err != nil {
-					InvalidateFederationDueToFailure(fed.ID)
-
-					customMsg = "unable to pull invidual dataset"
-					utils.WriteGatewayAudit(fmt.Sprintf("%s: %v", customMsg, err.Error()), customAction)
-
-					if p.Verbose {
-						fmt.Printf("%v\n", fmt.Errorf("unable to pull individual dataset: %v", err))
-					}
-				}
-
-				jsonString, err := json.Marshal(dataset)
-				if err != nil {
-					InvalidateFederationDueToFailure(fed.ID)
-
-					customMsg = "unable to marshal dataset response to json"
-					utils.WriteGatewayAudit(fmt.Sprintf("%s: %v", customMsg, err.Error()), customAction)
-
-					if p.Verbose {
-						fmt.Printf("%v\n", fmt.Errorf("unable to marshal dataset to json: %v", err))
-					}
-				}
-
-				//////////////////////////////////////////////////////////////////////////////////////////////////
-				// TODO: This entire part will be broken for federation until federated results are in HDR 2.1.2
-				// format or GWDM. Comparitively what we're currently seeing matches nothing we're working
-				// towards
-				//////////////////////////////////////////////////////////////////////////////////////////////////
-
-				// Send the dataset to Gateway API for processing
-				body := map[string]string{
-					"team_id":           strconv.Itoa(fed.Team[0].ID),
-					"user_id":           os.Getenv("GATEWAY_API_USER_ID"),
-					"label":             dataset.Summary.Title,
-					"short_description": dataset.Summary.Abstract,
-					"dataset":           string(jsonString),
-					"create_origin":     "FMA",
-				}
-
-				jsonPayload, _ := json.Marshal(body)
-
-				req, err := http.NewRequest("POST", fmt.Sprintf("%s/%s", os.Getenv("GATEWAY_API_URL"), "federations"),
-					bytes.NewBuffer(jsonPayload),
-				)
-
-				if os.IsTimeout(err) {
-					customMsg = "http call timed out"
-					utils.WriteGatewayAudit(fmt.Sprintf("%s: %v", customMsg, err.Error()), customAction)
-
-					if p.Verbose {
-						fmt.Printf("http call timedout %v", err.Error())
-					}
-				}
-				req.Header.Add("Content-Type", "application/json")
-
-				if err != nil {
-					customMsg = "unable to prepare gateway api call with processed dataset"
-					utils.WriteGatewayAudit(fmt.Sprintf("%s: %v", customMsg, err.Error()), customAction)
-
-					if p.Verbose {
-						fmt.Printf("%v\n", fmt.Errorf("unable to prepare gateway api call with processed dataset: %v", err))
-					}
-				}
-				result, err := Client.Do(req)
-				if err != nil {
-					customMsg = "unable to call gateway api with processed dataset"
-					utils.WriteGatewayAudit(fmt.Sprintf("%s: %v", customMsg, err.Error()), customAction)
-
-					if p.Verbose {
-						fmt.Printf("%v\n", fmt.Errorf("unable to call gateway api with processed dataset: %v", err))
-					}
-				}
-				defer result.Body.Close()
-
-				bodyResponse, err := io.ReadAll(result.Body)
-				if err != nil {
-					customMsg = "unable to parse body of gateway api dataset store call"
-					utils.WriteGatewayAudit(fmt.Sprintf("%s: %v", customMsg, err.Error()), customAction)
-
-					if p.Verbose {
-						fmt.Printf("%v\n", fmt.Errorf("unable to parse body of gateway api dataset store call: %v", err))
-					}
-				}
-
-				if p.Verbose {
-					fmt.Println(string(bodyResponse))
-				}
+			if p.Verbose {
+				fmt.Printf("%v\n", fmt.Errorf("unable to validate provided payload against our schema: %v", err))
 			}
 		}
-		continue
+
+		for _, item := range list.Items {
+			dataset, err := p.CallForDataset(item.PersistentID)
+			if err != nil {
+				InvalidateFederationDueToFailure(fed.ID)
+
+				customMsg = "unable to pull invidual dataset"
+				utils.WriteGatewayAudit(fmt.Sprintf("%s: %v", customMsg, err.Error()), customAction)
+
+				if p.Verbose {
+					fmt.Printf("%v\n", fmt.Errorf("unable to pull individual dataset: %v", err))
+				}
+			}
+
+			jsonString, err := json.Marshal(dataset)
+			if err != nil {
+				InvalidateFederationDueToFailure(fed.ID)
+
+				customMsg = "unable to marshal dataset response to json"
+				utils.WriteGatewayAudit(fmt.Sprintf("%s: %v", customMsg, err.Error()), customAction)
+
+				if p.Verbose {
+					fmt.Printf("%v\n", fmt.Errorf("unable to marshal dataset to json: %v", err))
+				}
+			}
+
+			//////////////////////////////////////////////////////////////////////////////////////////////////
+			// TODO: This entire part will be broken for federation until federated results are in HDR 2.1.2
+			// format or GWDM. Comparitively what we're currently seeing matches nothing we're working
+			// towards
+			//////////////////////////////////////////////////////////////////////////////////////////////////
+
+			// Determine current status of this federated metadata.
+			// i. 	Exists in DB, but not in federated payload - DELETE
+			// ii. 	Exists in federated payload, but not in BD - CREATE
+			// iii. Exists in both payload and db, but different version - UPDATE
+			// iv.	Exists in both payload and db, but same version - IGNORE
+
+			// Send the dataset to Gateway API for processing
+			body := map[string]string{
+				"team_id":           strconv.Itoa(fed.Team[0].ID),
+				"user_id":           os.Getenv("GATEWAY_API_USER_ID"),
+				"label":             dataset.Summary.Title,
+				"short_description": dataset.Summary.Abstract,
+				"dataset":           string(jsonString),
+				"create_origin":     "FMA",
+			}
+
+			jsonPayload, _ := json.Marshal(body)
+
+			fmt.Println(string(jsonString))
+
+			req, err := http.NewRequest("POST", fmt.Sprintf("%s/%s", os.Getenv("GATEWAY_API_URL"), "federations"),
+				bytes.NewBuffer(jsonPayload),
+			)
+
+			if os.IsTimeout(err) {
+				customMsg = "http call timed out"
+				utils.WriteGatewayAudit(fmt.Sprintf("%s: %v", customMsg, err.Error()), customAction)
+
+				if p.Verbose {
+					fmt.Printf("http call timedout %v", err.Error())
+				}
+			}
+			req.Header.Add("Content-Type", "application/json")
+
+			if err != nil {
+				customMsg = "unable to prepare gateway api call with processed dataset"
+				utils.WriteGatewayAudit(fmt.Sprintf("%s: %v", customMsg, err.Error()), customAction)
+
+				if p.Verbose {
+					fmt.Printf("%v\n", fmt.Errorf("unable to prepare gateway api call with processed dataset: %v", err))
+				}
+			}
+			result, err := Client.Do(req)
+			if err != nil {
+				customMsg = "unable to call gateway api with processed dataset"
+				utils.WriteGatewayAudit(fmt.Sprintf("%s: %v", customMsg, err.Error()), customAction)
+
+				if p.Verbose {
+					fmt.Printf("%v\n", fmt.Errorf("unable to call gateway api with processed dataset: %v", err))
+				}
+			}
+			defer result.Body.Close()
+
+			bodyResponse, err := io.ReadAll(result.Body)
+			if err != nil {
+				customMsg = "unable to parse body of gateway api dataset store call"
+				utils.WriteGatewayAudit(fmt.Sprintf("%s: %v", customMsg, err.Error()), customAction)
+
+				if p.Verbose {
+					fmt.Printf("%v\n", fmt.Errorf("unable to parse body of gateway api dataset store call: %v", err))
+				}
+			}
+
+			if p.Verbose {
+				fmt.Println(string(bodyResponse))
+			}
+		}
+		// continue
 	}
+}
+
+func determineOperationRequired(fed *pkg.Federation, dataset *pkg.FederationDataset) {
+
+}
+
+func (p *Pull) writeDataset(fed *pkg.Federation, dataset *pkg.FederationDataset, jsonString *[]byte) {
+
 }
 
 // isTimeToRun Helper function to determine if this federation can
