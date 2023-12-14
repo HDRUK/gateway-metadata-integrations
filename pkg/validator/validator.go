@@ -11,7 +11,12 @@ import (
 // our json schema for federation services. Returns true on success,
 // false otherwise. Upon error, errors are output to stdout
 func ValidateSchema(document string) (bool, error) {
-	schemaLoader := gojsonschema.NewReferenceLoader(os.Getenv("FMA_DEFAULT_SCHEMA_VALIDATION_URL"))
+	var schemaUrl = os.Getenv("FMA_DEFAULT_SCHEMA_VALIDATION_URL")
+	if schemaUrl == "" {
+		schemaUrl = "https://raw.githubusercontent.com/HDRUK/schemata/master/openapi/dataset.schema.json"
+	}
+
+	schemaLoader := gojsonschema.NewReferenceLoader(schemaUrl)
 	documentLoader := gojsonschema.NewStringLoader(document)
 
 	result, err := gojsonschema.Validate(schemaLoader, documentLoader)

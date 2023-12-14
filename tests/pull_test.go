@@ -20,25 +20,106 @@ type PullTestSuite struct {
 	suite.Suite
 }
 
-var jsonString = `{
-	"items": [{
-		"@schema": "https://raw.githubusercontent.com/HDRUK/schemata/master/schema/dataset/2.1.0/dataset.schema.json",
-		"type": "dataset",
-		"persistentId": "edad35a6-3be0-4907-acf1-cc44b82b2342",
-		"self": "https://fair.preview.aridhia.io/api/datasets/edad35a6-3be0-4907-acf1-cc44b82b2342",
-		"name": "CHRIS - Return wind usually.",
-		"description": "Power their however power produce woman. Section drop successful. White within factor bring wear.",
-		"version": "11.0.0",
-		"issued": "2010-01-18T10:34:17Z",
-		"modified": "2015-12-09T05:21:42Z",
-		"source": "NHSD"
-	}],
-	"query": {
-		"q": "",
-		"total": 1,
-		"limit": 0,
-		"offset": 0
+var jsonStringList = `{
+	"items":[
+		{
+			"name":"HDRUK Simulation Test Server 1",
+			"@schema":"https://raw.githubusercontent.com/HDRUK/schemata/master/schema/dataset/2.1.0/dataset.schema.json",
+			"description":"Sample description here",
+			"type":"dataset",
+			"persistentId":"e96e36ba-30ca-4c25-bc55-fab02d72a51c",
+			"self":"http://example-url.com/api/datasets/e96e36ba-30ca-4c25-bc55-fab02d72a51c",
+			"version":"0.0.0",
+			"issued":"2023-02-13T14:10:31.640Z",
+			"modified":"2023-09-04T10:53:01.239Z",
+			"source":"HDRUK"
+		}
+	],
+	"query":{
+		"q":"",
+		"total":1,
+		"limit":0,
+		"offset":0
 	}
+}`
+
+var jsonStringDataset = `{
+	"@schema":"https://raw.githubusercontent.com/HDRUK/schemata/master/schema/dataset/2.1.0/dataset.schema.json",
+	"identifier":"e96e36ba-30ca-4c25-bc55-fab02d72a51c",
+	"version":"1.0.0",
+	"issued":"2021-08-30T21:00:00+00:00",
+	"modified":"2021-08-30T21:00:00+00:00",
+	"revisions":[],
+	"summary":{
+		"title":"Bones Dataset",
+		"abstract":"Test description",
+		"publisher":{
+			"identifier":"http://bones.com",
+			"name":"Bones",
+			"logo":"http://example.com",
+			"description":"A publisher",
+			"contactPoint":[],
+			"memberOf":"ALLIANCE",
+			"accessRights":[],
+			"accessService":"Many many options",
+			"accessRequestCost":"Thousands of pounds"
+		},
+		"contactPoint":"test@bones.com",
+		"keywords":["bones","Blood"],
+		"doiName":"10.1093/ajae/aaq063"
+	},
+	"coverage":{
+		"spatial":[],
+		"typicalAgeRange":"25-80"
+	},
+	"provenance":{
+		"origin":{
+			"purpose":"COVID-19",
+			"source":"Routine Surveilance"
+		},
+		"temporal":{
+			"accrualPeriodicity":"IRREGULAR",
+			"distributionReleaseDate":"2021-08-30T21:00:00+00:00",
+			"startDate":"2021-08-10T21:00:00+00:00",
+			"endDate":"2021-08-30T21:00:00+00:00",
+			"timeLag":"1-2 WEEKS"
+		}
+	},
+	"accessibility":{
+		"usage":{
+			"dataUseRequirements":"none",
+			"resourceCreator":"Someone",
+			"investigations":[],
+			"isReferencedBy":[]
+		},
+		"access":{
+			"accessRights":["http://test.bones.com"],
+			"accessService":"Many many options",
+			"accessRequestCost":"Thousands",
+			"jurisdiction":["GB-NIR"],
+			"dataProcessor":"Some guy somewhere",
+			"dataController":"This is the data controller"
+		},
+		"formatAndStandards":{
+			"vocabularyEncodingScheme":["OPCS4"],
+			"conformsTo":["HL7 CDA"],
+			"language":["en"],
+			"format":["audio"]
+		}
+	},
+	"enrichmentAndLinkage":{
+		"qualifiedRelation":[],
+		"derivation":[],
+		"tools":[]
+	},
+	"observations":[
+		{
+			"observedNode":"PERSONS",
+			"measuredValue":3,
+			"observationDate":"2021-08-10T21:00:00+00:00",
+			"measuredProperty":"Count"
+		}
+	]
 }`
 
 func (t *PullTestSuite) SetUpTest() {
@@ -98,7 +179,7 @@ func (t *PullTestSuite) testGetFederations() []pkg.Federation {
 func testGetList(t *PullTestSuite) pkg.FederationResponse {
 	var resp pkg.FederationResponse
 
-	err := json.Unmarshal(([]byte(jsonString)), &resp)
+	err := json.Unmarshal(([]byte(jsonStringList)), &resp)
 	t.Equal(nil, err)
 
 	return resp
@@ -132,16 +213,14 @@ func (t *PullTestSuite) TestGenerateHeaders() {
 func (t *PullTestSuite) TestCallForList() {
 	list := testGetList(t)
 
-	t.Equal("CHRIS - Return wind usually.", list.Items[0].Name)
-	t.Equal("edad35a6-3be0-4907-acf1-cc44b82b2342", list.Items[0].PersistentID)
-	t.Equal("NHSD", list.Items[0].Source)
+	t.Equal("HDRUK Simulation Test Server 1", list.Items[0].Name)
+	t.Equal("e96e36ba-30ca-4c25-bc55-fab02d72a51c", list.Items[0].PersistentID)
+	t.Equal("HDRUK", list.Items[0].Source)
 	t.Equal("dataset", list.Items[0].Type)
 }
 
 func (t *PullTestSuite) TestItCanValidateAgainstOurSchema() {
-	verdict, err := validator.ValidateSchema(jsonString)
-	fmt.Printf("%+v\n\n", err.Error())
-
+	verdict, err := validator.ValidateSchema(jsonStringList)
 	t.Nil(err)
 
 	t.Equal(true, verdict)

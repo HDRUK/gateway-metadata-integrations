@@ -119,6 +119,15 @@ func InvalidateFederationDueToFailure(fed int) bool {
 	var customMsg string
 	customAction := "InvalidateFederationDueToFailure"
 
+	enabled, err := strconv.Atoi(os.Getenv("MARK_DISABLED_ON_ERROR"))
+	if err != nil {
+		enabled = 0
+	}
+
+	if enabled != 1 {
+		return true
+	}
+
 	body := []byte(`{
 		"enabled": 0,
 		"tested": 0
@@ -288,6 +297,8 @@ func (p *Pull) CallForList() (pkg.FederationResponse, error) {
 		}
 	}
 
+	fmt.Println(string(body))
+
 	// Ensure the returned payload from http call can be
 	// validated against our schema
 	_, err = validator.ValidateSchema(string(body))
@@ -371,6 +382,8 @@ func (p *Pull) CallForDataset(id string) (pkg.FederationDataset, error) {
 
 		return pkg.FederationDataset{}, fmt.Errorf("%s: %v", customMsg, err)
 	}
+
+	fmt.Println(string(body))
 
 	var dataset pkg.FederationDataset
 	json.Unmarshal(body, &dataset)
@@ -480,6 +493,7 @@ func Run() {
 				"short_description": dataset.Summary.Abstract,
 				"dataset":           string(jsonString),
 				"create_origin":     "FMA",
+				"status":            "ACTIVE",
 			}
 
 			jsonPayload, _ := json.Marshal(body)
