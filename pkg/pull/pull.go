@@ -301,9 +301,14 @@ func (p *Pull) CallForList() (pkg.FederationResponse, error) {
 
 	// Ensure the returned payload from http call can be
 	// validated against our schema
-	_, err = validator.ValidateSchema(string(body))
-	if err != nil {
-		return pkg.FederationResponse{}, err
+	res, err := validator.ValidateSchema(string(body))
+	if !res {
+		if p.Verbose {
+			fmt.Printf("unable to validate incoming data against our schema %v\n", err)
+		}
+		if err != nil {
+			return pkg.FederationResponse{}, err
+		}
 	}
 
 	var fedList pkg.FederationResponse
@@ -481,24 +486,22 @@ func Run() {
 
 			// Determine current status of this federated metadata.
 			// i. 	Exists in DB, but not in federated payload - DELETE
-			// ii. 	Exists in federated payload, but not in BD - CREATE
-			// iii. Exists in both payload and db, but different version - UPDATE
-			// iv.	Exists in both payload and db, but same version - IGNORE
+			// ii. 	Exists in federated payload, but not in DB - CREATE
+			// iii. Exists in both payload and DB, but different version - UPDATE
+			// iv.	Exists in both payload and DB, but same version - IGNORE
 
 			// Send the dataset to Gateway API for processing
 			body := map[string]string{
-				"team_id":           strconv.Itoa(fed.Team[0].ID),
-				"user_id":           os.Getenv("GATEWAY_API_USER_ID"),
-				"label":             dataset.Summary.Title,
-				"short_description": dataset.Summary.Abstract,
-				"dataset":           string(jsonString),
-				"create_origin":     "FMA",
-				"status":            "ACTIVE",
+				"team_id":       strconv.Itoa(fed.Team[0].ID),
+				"user_id":       os.Getenv("GATEWAY_API_USER_ID"),
+				"metadata":      string(jsonString),
+				"create_origin": "FMA",
+				"status":        "ACTIVE",
 			}
 
 			jsonPayload, _ := json.Marshal(body)
 
-			fmt.Println(string(jsonString))
+			fmt.Println(string(jsonPayload))
 
 			req, err := http.NewRequest("POST", fmt.Sprintf("%s/%s", os.Getenv("GATEWAY_API_URL"), "federations"),
 				bytes.NewBuffer(jsonPayload),
@@ -523,6 +526,9 @@ func Run() {
 				}
 			}
 			result, err := Client.Do(req)
+			if result.StatusCode > 400 {
+				fmt.Printf("%v\n", fmt.Errorf("unable to call gateway api with processed dataset: %v", result))
+			}
 			if err != nil {
 				customMsg = "unable to call gateway api with processed dataset"
 				utils.WriteGatewayAudit(fmt.Sprintf("%s: %v", customMsg, err.Error()), customAction)

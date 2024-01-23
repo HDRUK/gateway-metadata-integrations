@@ -67,17 +67,18 @@ type DeleteSecretRequest struct {
 }
 
 type FederationDataset struct {
-	Indentifier   string        `json:"identifier"`
-	Version       string        `json:"version"`
-	Issued        string        `json:"issued"`
-	Modified      string        `json:"modified"`
-	Revisions     []string      `json:"revisions"`
-	Summary       Summary       `json:"summary"`
-	Documentation Documentation `json:"documentation"`
-	Coverage      Coverage      `json:"coverage"`
-	Provenance    Provenance    `json:"provenance"`
-	Accessibility Accessibility `json:"accessibility"`
-	Observations  Observations  `json:"observations"`
+	Indentifier        string               `json:"identifier"`
+	Version            string               `json:"version"`
+	Issued             string               `json:"issued"`
+	Modified           string               `json:"modified"`
+	Revisions          []string             `json:"revisions"`
+	Summary            Summary              `json:"summary"`
+	Documentation      Documentation        `json:"documentation"`
+	Coverage           Coverage             `json:"coverage"`
+	Provenance         Provenance           `json:"provenance"`
+	Accessibility      Accessibility        `json:"accessibility"`
+	Observations       []Observations       `json:"observations"`
+	StructuralMetadata []StructuralMetadata `json:"structuralMetadata"`
 }
 
 type Summary struct {
@@ -94,7 +95,6 @@ type Publisher struct {
 	Description  string `json:"description"`
 	ContactPoint string `json:"contactPoint"`
 	MemberOf     string `json:"memberOf"`
-	AccessRights string `json:"accessRights"`
 }
 
 type Documentation struct {
@@ -110,9 +110,9 @@ type Provenance struct {
 }
 
 type Temporal struct {
-	AccrualPeriodicity string `json:"accrualPeriodicity"`
-	StartDate          string `json:"startDate"`
-	TimeLag            string `json:"timeLag"`
+	AccrualPeriodicity string  `json:"accrualPeriodicity"`
+	StartDate          string  `json:"startDate"`
+	TimeLag            *string `json:"timeLag"`
 }
 
 type Accessibility struct {
@@ -143,4 +143,17 @@ type Observations struct {
 	MeasuredValue    string `json:"measuredValue"`
 	ObservationDate  string `json:"observationDate"`
 	MeasuredProperty string `json:"measuredProperty"`
+}
+
+type StructuralMetadata struct {
+	Name        string        `json:"name"`
+	Description *string       `json:"description"`
+	Elements    []DataElement `json:"elements"`
+}
+
+type DataElement struct {
+	Name        string  `json:"name"`
+	Description *string `json:"description"`
+	DataType    string  `json:"dataType"`
+	Sensitive   bool    `json:"sensitive"`
 }
