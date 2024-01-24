@@ -66,12 +66,17 @@ type DeleteSecretRequest struct {
 	SecretID string `json:"secret_id"`
 }
 
+type Revisions struct {
+	Version        *string       `json:"version"`
+	Url            *string       `json:"url"`
+}
+
 type FederationDataset struct {
-	Indentifier        string               `json:"identifier"`
+	Identifier        string               `json:"identifier"`
 	Version            string               `json:"version"`
 	Issued             string               `json:"issued"`
 	Modified           string               `json:"modified"`
-	Revisions          []string             `json:"revisions"`
+	Revisions          []Revisions             `json:"revisions"`
 	Summary            Summary              `json:"summary"`
 	Documentation      Documentation        `json:"documentation"`
 	Coverage           Coverage             `json:"coverage"`
@@ -140,7 +145,8 @@ type FormatAndStandards struct {
 
 type Observations struct {
 	ObservedNode     string `json:"observedNode"`
-	MeasuredValue    string `json:"measuredValue"`
+	MeasuredValue    int    `json:"measuredValue"`
+	DisambiguatingDescription string `json:"disambiguatingDescription"`
 	ObservationDate  string `json:"observationDate"`
 	MeasuredProperty string `json:"measuredProperty"`
 }
