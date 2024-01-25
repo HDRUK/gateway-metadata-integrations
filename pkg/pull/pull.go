@@ -396,6 +396,118 @@ func (p *Pull) CallForDataset(id string) (pkg.FederationDataset, error) {
 	return dataset, nil
 }
 
+func FindMissingElements(list1, list2 []string) []string {
+	list2Map := make(map[string]bool)
+	for _, elem := range list2 {
+		list2Map[elem] = true
+	}
+	missingElements := []string{}
+	for _, elem := range list1 {
+		if _, exists := list2Map[elem]; !exists {
+			missingElements = append(missingElements, elem)
+		}
+	}
+	return missingElements
+}
+
+func (p *Pull) FindDataset(pid string) (pkg.Dataset, error){
+	var customMsg string
+	customAction := "GetDatasetStatus"
+
+	req, err := http.NewRequest("GET", fmt.Sprintf("%s/%s/%s", os.Getenv("GATEWAY_API_URL"), "datasets", pid),nil)
+
+	if err != nil {
+		customMsg = "unable to create new request for gateway api pull"
+		utils.WriteGatewayAudit(fmt.Sprintf("%s: %v", customMsg, err.Error()), customAction)
+		return pkg.Dataset{}, fmt.Errorf("%s: %v", customMsg, err)
+	}
+
+	res, err := Client.Do(req)
+	if os.IsTimeout(err) {
+		customMsg = "http call timed out"
+		utils.WriteGatewayAudit(fmt.Sprintf("%s %v", customMsg, err.Error()), customAction)
+		return pkg.Dataset{}, fmt.Errorf("%s %v", customMsg, err)
+	}
+	if err != nil {
+		customMsg = "unable to pull active federations from gateway api"
+		utils.WriteGatewayAudit(fmt.Sprintf("%s: %v", customMsg, err.Error()), customAction)
+		return pkg.Dataset{}, fmt.Errorf("%s: %v", customMsg, err)
+	}
+	defer res.Body.Close()
+
+	body, err := io.ReadAll(res.Body)
+
+	var dataset pkg.Dataset
+	json.Unmarshal(body, &dataset)
+
+	return dataset, nil
+}
+
+func (p *Pull) GetTeamDatasetsFMA(teamId int) ([]string, error){
+	var customMsg string
+	customAction := "GetTeamDatasetsFMA"
+
+	req, err := http.NewRequest("GET", fmt.Sprintf("%s/%s?team_id=%d&create_origin=%s", 
+										os.Getenv("GATEWAY_API_URL"), "datasets", teamId,"FMA"),
+										nil)
+
+	if err != nil {
+		customMsg = "unable to create new request for gateway api pull"
+		utils.WriteGatewayAudit(fmt.Sprintf("%s: %v", customMsg, err.Error()), customAction)
+		return []string{}, fmt.Errorf("%s: %v", customMsg, err)
+	}
+
+	res, err := Client.Do(req)
+	if os.IsTimeout(err) {
+		customMsg = "http call timed out"
+		utils.WriteGatewayAudit(fmt.Sprintf("%s %v", customMsg, err.Error()), customAction)
+		return []string{}, fmt.Errorf("%s %v", customMsg, err)
+	}
+	if err != nil {
+		customMsg = "unable to pull datasets for a team from the gateway api"
+		utils.WriteGatewayAudit(fmt.Sprintf("%s: %v", customMsg, err.Error()), customAction)
+		return []string{}, fmt.Errorf("%s: %v", customMsg, err)
+	}
+	defer res.Body.Close()
+
+	body, err := io.ReadAll(res.Body)
+
+	var pids []string
+	var datasets []pkg.Dataset
+	json.Unmarshal(body, &datasets)
+	for _, dataset := range datasets {
+		pids = append(pids, dataset.Pid)
+	}
+	return pids, nil
+}
+
+func (p *Pull) DeleteTeamDataset(teamId int, pid string) (error){
+	var customMsg string
+	customAction := "DeleteTeamDataset"
+
+	req, err := http.NewRequest("DELETE", fmt.Sprintf("%s/%s?team_id=%d", os.Getenv("GATEWAY_API_URL"), "datasets", teamId),nil)
+
+	if err != nil {
+		customMsg = "unable to create new request for gateway api pull"
+		utils.WriteGatewayAudit(fmt.Sprintf("%s: %v", customMsg, err.Error()), customAction)
+		return fmt.Errorf("%s: %v", customMsg, err)
+	}
+
+	res, err := Client.Do(req)
+	if os.IsTimeout(err) {
+		customMsg = "http call timed out"
+		utils.WriteGatewayAudit(fmt.Sprintf("%s %v", customMsg, err.Error()), customAction)
+		return fmt.Errorf("%s %v", customMsg, err)
+	}
+	if err != nil {
+		customMsg = "unable to pull datasets for a team from the gateway api"
+		utils.WriteGatewayAudit(fmt.Sprintf("%s: %v", customMsg, err.Error()), customAction)
+		return fmt.Errorf("%s: %v", customMsg, err)
+	}
+	defer res.Body.Close()
+	return nil
+}
+
 // Run Runs the functionality of this process
 func Run() {
 	var customMsg string
@@ -407,6 +519,9 @@ func Run() {
 		fmt.Printf("%v\n", err.Error())
 	}
 	for _, fed := range feds {
+
+		teamId := fed.Team[0].ID
+
 		// Determine if it is time to run this federation
 		// if isTimeToRun(&fed) {
 		// Next gather the gcloud secrets for this federation
@@ -453,6 +568,37 @@ func Run() {
 			}
 		}
 
+		if p.Verbose {
+			fmt.Printf("Number of datasets: %d\n",len(list.Items));
+		}
+
+		//find all the pids of datasets in the FMA payload
+		var fedPids []string;
+		for _, item := range list.Items {
+			fmt.Println(fmt.Sprintf("teamId: %s, pid: %s, version: %s\n",strconv.Itoa(fed.Team[0].ID),string(item.PersistentID),string(item.Version)));
+			fedPids = append(fedPids,string(item.PersistentID))
+		}
+
+		//retrieve the pids already in the gateway for this team, that have been created via FMA (create_origin="FMA")
+		existingPids,err := p.GetTeamDatasetsFMA(teamId)
+
+		if(len(existingPids)>0){
+			if p.Verbose {
+				fmt.Printf(fmt.Sprintf("Existing pids for team_id=%d %v\n",teamId,existingPids));
+			}
+			// find if there are any existing pids created with FMA previously that are no longer in the payload
+			existingPidForDeletion := FindMissingElements(existingPids,fedPids)
+			if (len(existingPidForDeletion)>0){
+				if p.Verbose {
+					fmt.Printf("Up for deletion... %v\n",existingPidForDeletion);
+				}
+				for _, pid := range existingPidForDeletion {
+					//delete any existing FMA created datasets that are no longer in the FMA payload
+					p.DeleteTeamDataset(teamId,pid)
+				}
+			}
+		}
+		
 		for _, item := range list.Items {
 			dataset, err := p.CallForDataset(item.PersistentID)
 			if err != nil {
@@ -490,6 +636,33 @@ func Run() {
 			// iii. Exists in both payload and DB, but different version - UPDATE
 			// iv.	Exists in both payload and DB, but same version - IGNORE
 
+			pid := item.PersistentID
+
+
+			mk2Dataset,err := p.FindDataset(pid)
+			if err != nil {
+				customMsg = "unable to lookup an existing dataset in the gateway based on a pid"
+				utils.WriteGatewayAudit(fmt.Sprintf("%s: %v", customMsg, err.Error()), customAction)
+			}
+
+			if (mk2Dataset.Pid == pid){
+				//found a matching dataset
+				fmt.Println(string(mk2Dataset.Pid))
+				fmt.Println(mk2Dataset.Version)
+				fmt.Println(fmt.Sprintf("%v",mk2Dataset.Metadata["required"]))
+			}
+			if (mk2Dataset.Pid == ""){
+				//couldnt find a dat
+			}
+		
+			fmt.Println(string(mk2Dataset.Pid))
+
+			mk2Dataset2,err := p.FindDataset("1234")
+			fmt.Println(string(mk2Dataset2.Pid))
+
+			fmt.Println("status")
+
+
 			// Send the dataset to Gateway API for processing
 			body := map[string]string{
 				"team_id":       strconv.Itoa(fed.Team[0].ID),
@@ -497,6 +670,7 @@ func Run() {
 				"metadata":      string(jsonString),
 				"create_origin": "FMA",
 				"status":        "ACTIVE",
+				"pid":           pid,
 			}
 
 			jsonPayload, _ := json.Marshal(body)
