@@ -32,6 +32,36 @@ func IsSuccessfulStatusCode(status int) bool {
 	return status >= 200 && status < 300
 }
 
+// StringInSlice helper function that checks if a string is in an array of strings
+// to return true or false
+func StringInSlice(a string, list []string) bool {
+    for _, b := range list {
+        if b == a {
+            return true
+        }
+    }
+    return false
+}
+
+// FindMissingElements helper functions that loops over a list to find elements
+// that are not in another list
+// returns a string list of missing elements
+func FindMissingElements(list1, list2 []string) []string {
+	list2Map := make(map[string]bool)
+	for _, elem := range list2 {
+		list2Map[elem] = true
+	}
+	missingElements := []string{}
+	for _, elem := range list1 {
+		if _, exists := list2Map[elem]; !exists {
+			missingElements = append(missingElements, elem)
+		}
+	}
+	return missingElements
+}
+
+
+
 // WriteGatewayAudit Helper function to write logs to the gateway api audit
 // log
 func WriteGatewayAudit(message, actionType string) {

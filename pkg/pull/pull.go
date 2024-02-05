@@ -392,38 +392,6 @@ func (p *Pull) CallForDataset(id string) (pkg.FederationDataset, error) {
 	return dataset, nil
 }
 
-func FindMissingElements(list1, list2 []string) []string {
-	list2Map := make(map[string]bool)
-	for _, elem := range list2 {
-		list2Map[elem] = true
-	}
-	missingElements := []string{}
-	for _, elem := range list1 {
-		if _, exists := list2Map[elem]; !exists {
-			missingElements = append(missingElements, elem)
-		}
-	}
-	return missingElements
-}
-
-func StringInSlice(a string, list []string) bool {
-    for _, b := range list {
-        if b == a {
-            return true
-        }
-    }
-    return false
-}
-
-func IsInArray(element string, array []string) bool {
-    for _, value := range array {
-        if value == element {
-            return true
-        }
-    }
-    return false
-}
-
 func (p *Pull) FindDataset(pid string) (pkg.Dataset, error){
 	var customMsg string
 	customAction := "GetDatasetStatus"
@@ -691,7 +659,7 @@ func Run() {
 				fmt.Printf(fmt.Sprintf("Existing pids for team_id=%d %v\n",teamId,existingGatewayDatasetPids));
 			}
 			// find if there are any existing pids created with FMA previously that are no longer in the payload
-			existingPidForDeletion := FindMissingElements(existingGatewayDatasetPids,fedPids)
+			existingPidForDeletion := utils.FindMissingElements(existingGatewayDatasetPids,fedPids)
 			if (len(existingPidForDeletion)>0){
 				if p.Verbose {
 					fmt.Printf("Up for deletion... %v\n",existingPidForDeletion);
@@ -733,13 +701,13 @@ func Run() {
 			}
 
 			//check if the dataset is already in the gateway
-			existsInGateway := StringInSlice(pid,existingGatewayDatasetPids)
+			existsInGateway := utils.StringInSlice(pid,existingGatewayDatasetPids)
 
 			//check if the version number is already in the gateway
 			versionAlreadyInGateway := false 
 			if(existsInGateway){
 				versions := existingPidsAndVersions[pid].Versions
-				versionAlreadyInGateway = IsInArray(version,versions)
+				versionAlreadyInGateway = utils.StringInSlice(version,versions)
 			}
 
 			if existsInGateway {
