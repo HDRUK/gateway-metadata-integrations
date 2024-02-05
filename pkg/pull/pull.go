@@ -713,7 +713,7 @@ func Run() {
 			if existsInGateway {
 				if versionAlreadyInGateway {
 					if p.Verbose {
-						fmt.Printf("Skipping pid=%s version= as dataset is already in the gateway", pid)
+						fmt.Printf("Skipping pid=%s version=%s as dataset is already in the gateway", pid, string(item.Version))
 					}
 					continue 
 				} else {
