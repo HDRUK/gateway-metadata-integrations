@@ -550,7 +550,9 @@ func (p *Pull) CreateOrUpdateTeamDataset(teamId string, pid string, metadata str
 		method = "PUT"
 	}
 
-	fmt.Printf("\n%v",string(jsonPayload))
+	if p.Verbose{
+		fmt.Printf("\n%v",string(jsonPayload))
+	}
 	
 	req, err := http.NewRequest(method, url,
 		bytes.NewBuffer(jsonPayload),
