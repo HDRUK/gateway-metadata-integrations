@@ -88,9 +88,16 @@ type FederationDataset struct {
 
 type Dataset struct {
 	Pid              string  						`json:"pid"`
-	Version          int 							`json:"version"`
+	Version          string 					    `json:"version"`
 	Metadata    	 map[string]interface{} 		`json:"metadata"`
 }
+
+type DatasetVersions struct {
+	Versions []string `json:"versions"`
+}
+
+type DatasetsVersions map[string]DatasetVersions
+
 
 type Summary struct {
 	Title        string    `json:"title"`
