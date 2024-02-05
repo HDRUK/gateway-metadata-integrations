@@ -504,7 +504,7 @@ func (p *Pull) DeleteTeamDataset(teamId int, pid string) (error){
 	var customMsg string
 	customAction := "DeleteTeamDataset"
 
-	req, err := http.NewRequest("DELETE", fmt.Sprintf("%s/%s?team_id=%d", os.Getenv("GATEWAY_API_URL"), "datasets", teamId),nil)
+	req, err := http.NewRequest("DELETE", fmt.Sprintf("%s/%s/%s/%s", os.Getenv("GATEWAY_API_URL"), "federations","delete", pid),nil)
 
 	if err != nil {
 		customMsg = "unable to create new request for gateway api pull"
