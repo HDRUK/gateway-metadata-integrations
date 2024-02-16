@@ -42,13 +42,13 @@ func TestFederationHandler(c *gin.Context) {
 	)
 
 	response = p.TestCredentials()
-	if response.(gin.H)["error"] != "" {
+	if val, ok := response.(gin.H)["error"]; ok && val != nil{
 		c.JSON(http.StatusOK, response)
 		return
 	}
 
 	response = p.TestDatasetsEndpoint()
-	if response.(gin.H)["error"] != "" {
+	if val, ok := response.(gin.H)["error"]; ok && val != nil{
 		c.JSON(http.StatusOK, response)
 		return
 	}

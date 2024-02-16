@@ -13,8 +13,10 @@ import (
 func ValidateSchema(document string) (bool, error) {
 	var schemaUrl = os.Getenv("FMA_DEFAULT_SCHEMA_VALIDATION_URL")
 	if schemaUrl == "" {
-		schemaUrl = "https://raw.githubusercontent.com/HDRUK/schemata/master/openapi/dataset.schema.json"
+		schemaUrl = "https://raw.githubusercontent.com/HDRUK/schemata-2/master/hdr_schemata/models/FMA/fma.schema.json"
 	}
+
+	fmt.Println(schemaUrl)
 
 	schemaLoader := gojsonschema.NewReferenceLoader(schemaUrl)
 	documentLoader := gojsonschema.NewStringLoader(document)

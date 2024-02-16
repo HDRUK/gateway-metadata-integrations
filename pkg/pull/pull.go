@@ -192,7 +192,6 @@ func (p *Pull) TestCredentials() gin.H {
 	if p.Verbose {
 		fmt.Printf("%v", req)
 	}
-
 	result, err := Client.Do(req)
 	if err != nil {
 		return utils.FormResponse(http.StatusBadRequest, false, "Credentials Test", err.Error())
@@ -211,6 +210,9 @@ func (p *Pull) TestDatasetsEndpoint() gin.H {
 		return utils.FormResponse(pkg.ERROR_INVALID_HTTP_REQUEST, false, "Endpoints Test", err.Error())
 	}
 
+	fmt.Println("%s",p.DatasetsUri)
+	fmt.Println("-----------")
+
 	p.GenerateHeaders(req)
 
 	result, err := Client.Do(req)
@@ -223,6 +225,8 @@ func (p *Pull) TestDatasetsEndpoint() gin.H {
 	if err != nil {
 		return returnFailedValidation()
 	}
+
+	fmt.Printf(fmt.Sprintf("%v \n",list))
 
 	if len(list.Items) >= 0 {
 		return checkStatus(result.StatusCode)
@@ -319,6 +323,8 @@ func (p *Pull) CallForList() (pkg.FederationResponse, error) {
 			fmt.Printf("unable to unmarshal body response of call %v\n", err)
 		}
 	}
+
+	fmt.Println("----- made it all the way here")
 
 	return fedList, nil
 }
