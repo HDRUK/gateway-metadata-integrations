@@ -25,6 +25,7 @@ func TestFederationHandler(c *gin.Context) {
 			false,
 			"unable to decode request body",
 			err.Error()))
+		return 
 	}
 
 	// Create a new Pull Object to test this integration
