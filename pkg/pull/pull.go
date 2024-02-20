@@ -598,6 +598,7 @@ func Run() {
 	for _, fed := range feds {
 
 		teamId := fed.Team[0].ID
+		utils.WriteGatewayAudit(fmt.Sprintf("Working on teamId= %d ",teamId), customAction)
 
 		// Determine if it is time to run this federation
 		// if isTimeToRun(&fed) {
