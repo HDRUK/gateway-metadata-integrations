@@ -585,11 +585,16 @@ func Run() {
 	var customMsg string
 	customAction := "Run"
 
+	utils.WriteGatewayAudit("Running the pull service", customAction)
+
 	// Firstly grab a list of all active federations in the api
 	feds, err := GetGatewayFederations()
 	if err != nil {
 		fmt.Printf("%v\n", err.Error())
 	}
+
+	utils.WriteGatewayAudit(fmt.Sprintf("collected %d federations",len(feds)), customAction)
+
 	for _, fed := range feds {
 
 		teamId := fed.Team[0].ID
@@ -640,9 +645,10 @@ func Run() {
 			}
 		}
 
-		if p.Verbose {
-			fmt.Printf("Number of datasets: %d\n",len(list.Items));
-		}
+		//if p.Verbose {
+		//	fmt.Printf("Number of datasets: %d\n",len(list.Items));
+		//}
+		utils.WriteGatewayAudit(fmt.Sprintf("Number of datasets: %d\n",len(list.Items)), customAction)
 
 		//find all the pids of datasets in the FMA payload
 		var fedPids []string;
