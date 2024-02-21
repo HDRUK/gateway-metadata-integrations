@@ -597,6 +597,7 @@ func Run() {
 		ret, err := sec.GetSecret(fed.AuthType)
 		if err != nil {
 			customMsg = "unable to retrieve secrets from gcloud"
+			fmt.Printf(" --> %s: %v \n", customMsg, err.Error())
 			utils.WriteGatewayAudit(fmt.Sprintf("%s: %v", customMsg, err.Error()), customAction)
 
 			continue
