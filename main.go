@@ -25,7 +25,7 @@ func main() {
 
 	// TODO - reinstate this once we have federations
 	// to begin running.
-	scheduler.Every(1).Minute().Do(func() {
+	scheduler.Every(10).Seconds().Do(func() {
 		pull.Run()
 	})
 

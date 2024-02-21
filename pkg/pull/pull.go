@@ -585,6 +585,7 @@ func Run() {
 	var customMsg string
 	customAction := "Run"
 
+	fmt.Println("Pulling data...")
 	utils.WriteGatewayAudit("Running the pull service", customAction)
 
 	// Firstly grab a list of all active federations in the api
@@ -595,9 +596,11 @@ func Run() {
 
 	utils.WriteGatewayAudit(fmt.Sprintf("collected %d federations",len(feds)), customAction)
 
+	fmt.Printf("Found %d federations \n",len(feds))
 	for _, fed := range feds {
 
 		teamId := fed.Team[0].ID
+		fmt.Printf("Working on teamId= %d \n",teamId)
 		utils.WriteGatewayAudit(fmt.Sprintf("Working on teamId= %d ",teamId), customAction)
 
 		// Determine if it is time to run this federation
