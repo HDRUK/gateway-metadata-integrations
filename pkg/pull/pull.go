@@ -584,6 +584,7 @@ func Run() {
 	if err != nil {
 		fmt.Printf("%v\n", err.Error())
 	}
+	fmt.Printf("Found %d federations...",len(feds))
 	for _, fed := range feds {
 
 		teamId := fed.Team[0].ID
