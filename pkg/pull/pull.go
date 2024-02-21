@@ -79,7 +79,7 @@ func GetGatewayFederations() ([]pkg.Federation, error) {
 	customAction := "GetGatewayFederations"
 
 	req, err := http.NewRequest("GET", fmt.Sprintf("%s/%s", os.Getenv("GATEWAY_API_URL"), "federations"), nil)
-	fmt.Printf("pulling from %s \n", fmt.Sprintf("%s/%s", os.Getenv("GATEWAY_API_URL"), "federations"))
+	fmt.Printf(" --> pulling from %s \n", fmt.Sprintf("%s/%s", os.Getenv("GATEWAY_API_URL"), "federations"))
 	if err != nil {
 		customMsg = "unable to create new request for gateway api pull"
 		utils.WriteGatewayAudit(fmt.Sprintf("%s: %v", customMsg, err.Error()), customAction)
