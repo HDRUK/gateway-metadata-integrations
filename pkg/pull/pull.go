@@ -5,13 +5,11 @@ import (
 	"encoding/json"
 	"fmt"
 	"hdruk/federated-metadata/pkg"
-	"hdruk/federated-metadata/pkg/secrets"
 	"hdruk/federated-metadata/pkg/utils"
 	"hdruk/federated-metadata/pkg/validator"
 	"io"
 	"net/http"
 	"os"
-	"reflect"
 	"strconv"
 	"strings"
 	"time"
@@ -79,6 +77,7 @@ func GetGatewayFederations() ([]pkg.Federation, error) {
 	customAction := "GetGatewayFederations"
 
 	req, err := http.NewRequest("GET", fmt.Sprintf("%s/%s", os.Getenv("GATEWAY_API_URL"), "federations"), nil)
+	fmt.Printf(" --> pulling from %s \n", fmt.Sprintf("%s/%s", os.Getenv("GATEWAY_API_URL"), "federations"))
 	if err != nil {
 		customMsg = "unable to create new request for gateway api pull"
 		utils.WriteGatewayAudit(fmt.Sprintf("%s: %v", customMsg, err.Error()), customAction)
@@ -168,6 +167,8 @@ func (p *Pull) GenerateHeaders(req *http.Request) {
 		req.Header.Add("Authorization", fmt.Sprintf("Bearer %s", p.AccessToken))
 	case "API_KEY":
 		req.Header.Add("apikey", p.AccessToken)
+	case "NO_AUTH":
+		//do nothing if there's no auth set
 	default:
 		customMsg = fmt.Sprintf("unknown auth method %s. aborting", p.Method)
 		utils.WriteGatewayAudit(customMsg, customAction)
@@ -394,7 +395,6 @@ func (p *Pull) CallForDataset(id string) (pkg.FederationDataset, error) {
 
 	var dataset pkg.FederationDataset
 	json.Unmarshal(body, &dataset)
-
 	return dataset, nil
 }
 
@@ -459,10 +459,16 @@ func (p *Pull) GetTeamDatasetsFMA(teamId int) ( pkg.DatasetsVersions, error){
 	defer res.Body.Close()
 
 	body, err := io.ReadAll(res.Body)
-
 	var datasetsVersions pkg.DatasetsVersions
 	err = json.Unmarshal(body, &datasetsVersions)
 	if err != nil {
+
+		if string(body) == "[]" {
+			customMsg = "u"
+			utils.WriteGatewayAudit("No existing FMA datasets found for this team", customAction)
+			return pkg.DatasetsVersions{},nil
+		}
+
 		customMsg = "unable to unmarshal body response of call"
 		utils.WriteGatewayAudit(fmt.Sprintf("%s: %v", customMsg, err.Error()), customAction)
 
@@ -522,12 +528,11 @@ func (p *Pull) CreateOrUpdateTeamDataset(teamId string, pid string, metadata str
 	if(update){
 		url = fmt.Sprintf("%s/%s/%s/%s", os.Getenv("GATEWAY_API_URL"), "federations","update",pid) 
 		method = "PUT"
+		fmt.Printf("---> UPDATING existing dataset %s \n",pid)
+	}else {
+		fmt.Printf("---> creating a new dataset \n")
 	}
 
-	if p.Verbose{
-		fmt.Printf("\n%v",string(jsonPayload))
-	}
-	
 	req, err := http.NewRequest(method, url,
 		bytes.NewBuffer(jsonPayload),
 	)
@@ -574,9 +579,11 @@ func (p *Pull) CreateOrUpdateTeamDataset(teamId string, pid string, metadata str
 		}
 	}
 
-	if p.Verbose {
-		fmt.Println(string(bodyResponse))
-	}
+	var out bytes.Buffer
+    json.Indent(&out, bodyResponse, "", "  ")
+  	fmt.Printf("%s",out.Bytes())
+
+	
 	return nil
 }
 
@@ -593,36 +600,49 @@ func Run() {
 	if err != nil {
 		fmt.Printf("%v\n", err.Error())
 	}
+<<<<<<< HEAD
 
 	utils.WriteGatewayAudit(fmt.Sprintf("collected %d federations",len(feds)), customAction)
 
 	fmt.Printf("Found %d federations \n",len(feds))
+=======
+	fmt.Printf("Found %d federations ... \n",len(feds))
+>>>>>>> dev
 	for _, fed := range feds {
 
 		teamId := fed.Team[0].ID
 		fmt.Printf("Working on teamId= %d \n",teamId)
 		utils.WriteGatewayAudit(fmt.Sprintf("Working on teamId= %d ",teamId), customAction)
 
+		/*
+		
+			Note (Calum 22/02/24):
+			- This section is broken and will need sorting out
+			- secrets are not being saved in gcloud
+		*/
 		// Determine if it is time to run this federation
 		// if isTimeToRun(&fed) {
 		// Next gather the gcloud secrets for this federation
-		sec := secrets.NewSecrets(fed.AuthSecretKey, "")
+		/*sec := secrets.NewSecrets(fed.AuthSecretKey, "")
 		ret, err := sec.GetSecret(fed.AuthType)
 		if err != nil {
 			customMsg = "unable to retrieve secrets from gcloud"
+			fmt.Printf(" --> %s: %v \n", customMsg, err.Error())
 			utils.WriteGatewayAudit(fmt.Sprintf("%s: %v", customMsg, err.Error()), customAction)
 
 			continue
 		}
-
-		var accessToken string
+		var accessToken string 
 		if reflect.TypeOf(ret).String() == "secrets.BearerTokenResponse" {
 			accessToken = ret.(secrets.BearerTokenResponse).BearerToken
 		} else if reflect.TypeOf(ret).String() == "secrets.APIKeyResponse" {
 			accessToken = ret.(secrets.APIKeyResponse).APIKey
 		} else { // NO_AUTH
 			accessToken = ""
-		}
+		}*/
+				
+		var accessToken string = ""
+		
 
 		// Create a new Pull object to action the request
 		p := NewPull(
@@ -725,6 +745,10 @@ func Run() {
 				versions := existingPidsAndVersions[pid].Versions
 				versionAlreadyInGateway = utils.StringInSlice(version,versions)
 			}
+
+			fmt.Printf("existsInGateway=%t, version_in_gateway=%t \n",existsInGateway, versionAlreadyInGateway)
+			fmt.Printf("--> version=%s \n ",version)
+			fmt.Printf("--> versions=%v \n ",existingPidsAndVersions[pid].Versions)
 
 			if existsInGateway {
 				if versionAlreadyInGateway {

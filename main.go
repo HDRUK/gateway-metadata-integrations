@@ -23,7 +23,7 @@ func main() {
 	scheduler := gocron.NewScheduler(time.UTC)
 	scheduler.SingletonModeAll()
 
-	// TODO - reinstate this once we have federations
+	// TODO - reinstate this once we have %federations
 	// to begin running.
 	scheduler.Every(10).Seconds().Do(func() {
 		pull.Run()
