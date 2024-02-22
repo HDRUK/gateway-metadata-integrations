@@ -600,14 +600,9 @@ func Run() {
 	if err != nil {
 		fmt.Printf("%v\n", err.Error())
 	}
-<<<<<<< HEAD
 
 	utils.WriteGatewayAudit(fmt.Sprintf("collected %d federations",len(feds)), customAction)
-
 	fmt.Printf("Found %d federations \n",len(feds))
-=======
-	fmt.Printf("Found %d federations ... \n",len(feds))
->>>>>>> dev
 	for _, fed := range feds {
 
 		teamId := fed.Team[0].ID
