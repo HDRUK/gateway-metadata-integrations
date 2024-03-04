@@ -157,12 +157,8 @@ func (s *Secrets) UpdateSecret(parent, secretID, payload string) (string, error)
 	ctx := context.Background()
 	client, err := secretmanager.NewClient(ctx)
 	if err != nil {
-		// The most likely causes of the error are:
-		//	1. Google application credentials failed
-		//	2. Secret already exists
 		customMsg = "failed to create secretmanager client"
 		utils.WriteGatewayAudit(fmt.Sprintf("%s: %v", customMsg, err.Error()), customAction)
-
 		return "", fmt.Errorf("%s: %v", customMsg, err)
 	}
 	defer client.Close()

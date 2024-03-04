@@ -36,6 +36,7 @@ func Run() bool {
 	router.GET("/ping", routes.PingHandler)
 	router.POST("/test", routes.TestFederationHandler)
 	router.POST("/federation", routes.CreateFederationHandler)
+	router.POST("/federation", routes.UpdateFederationHandler)
 	router.DELETE("/federation", routes.DeleteFederationHandler)
 
 	server.ListenAndServe()
