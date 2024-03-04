@@ -4,8 +4,8 @@ package pkg
 // from Gateway API
 type Federation struct {
 	ID               int    `json:"id"`
+	PID              string `json:"pid"`
 	AuthType         string `json:"auth_type"`
-	AuthSecretKey    string `json:"auth_secret_key"`
 	EndpointBaseURL  string `json:"endpoint_baseurl"`
 	EndpointDatasets string `json:"endpoint_datasets"`
 	EndpointDataset  string `json:"endpoint_dataset"`

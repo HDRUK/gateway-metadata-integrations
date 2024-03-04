@@ -37,7 +37,7 @@ func TestFederationHandler(c *gin.Context) {
 			fed.EndpointDataset),
 		"",
 		"",
-		fed.AuthSecretKey,
+		fed.PID,
 		fed.AuthType,
 		false,
 	)

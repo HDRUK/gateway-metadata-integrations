@@ -5,11 +5,13 @@ import (
 	"encoding/json"
 	"fmt"
 	"hdruk/federated-metadata/pkg"
+	"hdruk/federated-metadata/pkg/secrets"
 	"hdruk/federated-metadata/pkg/utils"
 	"hdruk/federated-metadata/pkg/validator"
 	"io"
 	"net/http"
 	"os"
+	"reflect"
 	"strconv"
 	"strings"
 	"time"
@@ -616,29 +618,30 @@ func Run() {
 			- secrets are not being saved in gcloud
 		*/
 		// Determine if it is time to run this federation
-		// if isTimeToRun(&fed) {
+		//if isTimeToRun(&fed) {
+		//	fmt.Println("is time to run")
+	    //}
 		// Next gather the gcloud secrets for this federation
-		/*sec := secrets.NewSecrets(fed.AuthSecretKey, "")
-		ret, err := sec.GetSecret(fed.AuthType)
-		if err != nil {
-			customMsg = "unable to retrieve secrets from gcloud"
-			fmt.Printf(" --> %s: %v \n", customMsg, err.Error())
-			utils.WriteGatewayAudit(fmt.Sprintf("%s: %v", customMsg, err.Error()), customAction)
 
-			continue
-		}
-		var accessToken string 
-		if reflect.TypeOf(ret).String() == "secrets.BearerTokenResponse" {
-			accessToken = ret.(secrets.BearerTokenResponse).BearerToken
-		} else if reflect.TypeOf(ret).String() == "secrets.APIKeyResponse" {
-			accessToken = ret.(secrets.APIKeyResponse).APIKey
-		} else { // NO_AUTH
-			accessToken = ""
-		}*/
-				
 		var accessToken string = ""
-		
+		if(fed.AuthType != "NO_AUTH"){
+			sec := secrets.NewSecrets(fed.PID, "")
+			ret, err := sec.GetSecret(fed.AuthType)
+			if err != nil {
+				customMsg = "unable to retrieve secrets from gcloud"
+				fmt.Printf(" --> %s: %v \n", customMsg, err.Error())
+				utils.WriteGatewayAudit(fmt.Sprintf("%s: %v", customMsg, err.Error()), customAction)
 
+				continue
+			}
+			
+			if reflect.TypeOf(ret).String() == "secrets.BearerTokenResponse" {
+				accessToken = ret.(secrets.BearerTokenResponse).BearerToken
+			} else if reflect.TypeOf(ret).String() == "secrets.APIKeyResponse" {
+				accessToken = ret.(secrets.APIKeyResponse).APIKey
+			} 
+		}
+	
 		// Create a new Pull object to action the request
 		p := NewPull(
 			fed.ID,
