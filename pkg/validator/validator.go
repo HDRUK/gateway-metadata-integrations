@@ -16,8 +16,6 @@ func ValidateSchema(document string) (bool, error) {
 		schemaUrl = "https://raw.githubusercontent.com/HDRUK/schemata-2/master/hdr_schemata/models/FMA/fma.schema.json"
 	}
 
-	fmt.Println(schemaUrl)
-
 	schemaLoader := gojsonschema.NewReferenceLoader(schemaUrl)
 	documentLoader := gojsonschema.NewStringLoader(document)
 
