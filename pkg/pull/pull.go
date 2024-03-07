@@ -334,7 +334,7 @@ func (p *Pull) CallForList() (pkg.FederationResponse, error) {
 
 // CallForDataset Is a subsequent step in the data pulling process. Issues
 // an HTTP request against an individual endpoint to probe for data
-func (p *Pull) CallForDataset(id string) (pkg.FederationDataset, error) {
+func (p *Pull) CallForDataset(id string) (map[string]interface{}, error) {
 	var customMsg string
 	customAction := "CallForDataset"
 
@@ -345,7 +345,7 @@ func (p *Pull) CallForDataset(id string) (pkg.FederationDataset, error) {
 		customMsg = "unable to form new request with following error"
 		utils.WriteGatewayAudit(fmt.Sprintf("%s: %v", customMsg, err.Error()), customAction)
 
-		return pkg.FederationDataset{}, fmt.Errorf("%s %v", customMsg, err)
+		return map[string]interface{}{}, fmt.Errorf("%s %v", customMsg, err)
 	}
 
 	p.GenerateHeaders(req)
@@ -359,14 +359,14 @@ func (p *Pull) CallForDataset(id string) (pkg.FederationDataset, error) {
 			fmt.Printf("http call timedout %v", err.Error())
 		}
 
-		return pkg.FederationDataset{}, err
+		return map[string]interface{}{}, err
 	}
 
 	if err != nil {
 		customMsg = "auth call failed with error"
 		utils.WriteGatewayAudit(fmt.Sprintf("%s: %v", customMsg, err.Error()), customAction)
 
-		return pkg.FederationDataset{}, fmt.Errorf("%s %v", customMsg, err)
+		return map[string]interface{}{}, fmt.Errorf("%s %v", customMsg, err)
 	}
 	defer result.Body.Close()
 
@@ -380,7 +380,7 @@ func (p *Pull) CallForDataset(id string) (pkg.FederationDataset, error) {
 			fmt.Printf("non 200 status returned %d flagging federation as invalid. Error: %v", result.StatusCode, err)
 		}
 
-		return pkg.FederationDataset{}, err
+		return map[string]interface{}{}, err
 	}
 
 	if p.Verbose {
@@ -392,11 +392,13 @@ func (p *Pull) CallForDataset(id string) (pkg.FederationDataset, error) {
 		customMsg = "unable to read body of call"
 		utils.WriteGatewayAudit(fmt.Sprintf("%s: %v", customMsg, err.Error()), customAction)
 
-		return pkg.FederationDataset{}, fmt.Errorf("%s: %v", customMsg, err)
+		return map[string]interface{}{}, fmt.Errorf("%s: %v", customMsg, err)
 	}
 
-	var dataset pkg.FederationDataset
-	json.Unmarshal(body, &dataset)
+	var dataset map[string]interface{}
+	if err := json.Unmarshal(body, &dataset); err != nil {
+        return map[string]interface{}{}, err
+    }
 	return dataset, nil
 }
 
@@ -524,6 +526,7 @@ func (p *Pull) CreateOrUpdateTeamDataset(teamId string, pid string, metadata str
 	}
 
 	jsonPayload, _ := json.Marshal(body)
+	//fmt.Printf("%v\n",string(jsonPayload))
 
 	url := fmt.Sprintf("%s/%s", os.Getenv("GATEWAY_API_URL"), "federations") 
 	method := "POST"
@@ -532,7 +535,7 @@ func (p *Pull) CreateOrUpdateTeamDataset(teamId string, pid string, metadata str
 		method = "PUT"
 		fmt.Printf("---> UPDATING existing dataset %s \n",pid)
 	}else {
-		fmt.Printf("---> creating a new dataset \n")
+		fmt.Printf("---> creating a new dataset! \n")
 	}
 
 	req, err := http.NewRequest(method, url,
@@ -611,16 +614,12 @@ func Run() {
 		fmt.Printf("Working on teamId= %d \n",teamId)
 		utils.WriteGatewayAudit(fmt.Sprintf("Working on teamId= %d ",teamId), customAction)
 
-		/*
-		
-			Note (Calum 22/02/24):
-			- This section is broken and will need sorting out
-			- secrets are not being saved in gcloud
-		*/
+
 		// Determine if it is time to run this federation
-		//if isTimeToRun(&fed) {
-		//	fmt.Println("is time to run")
-	    //}
+		if !isTimeToRun(&fed) {
+			fmt.Println("it is not time to run this federation..")
+			continue
+	    }
 		// Next gather the gcloud secrets for this federation
 
 		var accessToken string = ""
@@ -722,6 +721,17 @@ func Run() {
 				}
 			}
 
+			if (version != dataset["version"]){
+
+				msg := fmt.Errorf("version mis-match... %s != %s ... skipping",version,dataset["version"])
+				customMsg = "Version in /datasets does not match this version"
+				utils.WriteGatewayAudit(fmt.Sprintf("%s: %v", customMsg, msg), customAction)
+				if p.Verbose {
+					fmt.Printf("%v\n", msg)
+				}
+				continue
+			}
+
 			jsonString, err := json.Marshal(dataset)
 			if err != nil {
 				InvalidateFederationDueToFailure(fed.ID)
@@ -751,7 +761,7 @@ func Run() {
 			if existsInGateway {
 				if versionAlreadyInGateway {
 					if p.Verbose {
-						fmt.Printf("Skipping pid=%s version=%s as dataset is already in the gateway", pid, string(item.Version))
+						fmt.Printf("Skipping pid=%s version=%s as dataset is already in the gateway\n", pid, string(item.Version))
 					}
 					continue 
 				} else {
