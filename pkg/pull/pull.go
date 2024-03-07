@@ -213,9 +213,6 @@ func (p *Pull) TestDatasetsEndpoint() gin.H {
 		return utils.FormResponse(pkg.ERROR_INVALID_HTTP_REQUEST, false, "Endpoints Test", err.Error())
 	}
 
-	fmt.Println("%s",p.DatasetsUri)
-	fmt.Println("-----------")
-
 	p.GenerateHeaders(req)
 
 	result, err := Client.Do(req)
@@ -228,8 +225,6 @@ func (p *Pull) TestDatasetsEndpoint() gin.H {
 	if err != nil {
 		return returnFailedValidation()
 	}
-
-	fmt.Printf(fmt.Sprintf("%v \n",list))
 
 	if len(list.Items) >= 0 {
 		return checkStatus(result.StatusCode)
@@ -326,8 +321,6 @@ func (p *Pull) CallForList() (pkg.FederationResponse, error) {
 			fmt.Printf("unable to unmarshal body response of call %v\n", err)
 		}
 	}
-
-	fmt.Println("----- made it all the way here")
 
 	return fedList, nil
 }
@@ -468,7 +461,7 @@ func (p *Pull) GetTeamDatasetsFMA(teamId int) ( pkg.DatasetsVersions, error){
 	if err != nil {
 
 		if string(body) == "[]" {
-			customMsg = "u"
+			customMsg = "problem with datasetVersions body"
 			utils.WriteGatewayAudit("No existing FMA datasets found for this team", customAction)
 			return pkg.DatasetsVersions{},nil
 		}
@@ -526,7 +519,6 @@ func (p *Pull) CreateOrUpdateTeamDataset(teamId string, pid string, metadata str
 	}
 
 	jsonPayload, _ := json.Marshal(body)
-	//fmt.Printf("%v\n",string(jsonPayload))
 
 	url := fmt.Sprintf("%s/%s", os.Getenv("GATEWAY_API_URL"), "federations") 
 	method := "POST"
@@ -621,8 +613,8 @@ func Run() {
 			continue
 	    }
 		// Next gather the gcloud secrets for this federation
-
 		var accessToken string = ""
+		// only need to do this when there is some AUTH
 		if(fed.AuthType != "NO_AUTH"){
 			sec := secrets.NewSecrets(fed.PID, "")
 			ret, err := sec.GetSecret(fed.AuthType)
@@ -666,9 +658,9 @@ func Run() {
 			}
 		}
 
-		//if p.Verbose {
-		//	fmt.Printf("Number of datasets: %d\n",len(list.Items));
-		//}
+		if p.Verbose {
+			fmt.Printf("Number of datasets: %d\n",len(list.Items));
+		}
 		utils.WriteGatewayAudit(fmt.Sprintf("Number of datasets: %d\n",len(list.Items)), customAction)
 
 		//find all the pids of datasets in the FMA payload
