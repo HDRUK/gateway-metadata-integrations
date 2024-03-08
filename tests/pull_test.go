@@ -24,7 +24,7 @@ var jsonStringList = `{
 	"items":[
 		{
 			"name":"HDRUK Simulation Test Server 1",
-			"@schema":"https://raw.githubusercontent.com/HDRUK/schemata/master/schema/dataset/2.1.0/dataset.schema.json",
+			"@schema":"https://raw.githubusercontent.com/HDRUK/schemata-2/master/hdr_schemata/models/HDRUK/2.1.0/schema.json",
 			"description":"Sample description here",
 			"type":"dataset",
 			"persistentId":"e96e36ba-30ca-4c25-bc55-fab02d72a51c",

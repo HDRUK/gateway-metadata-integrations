@@ -25,6 +25,7 @@ func TestFederationHandler(c *gin.Context) {
 			false,
 			"unable to decode request body",
 			err.Error()))
+		return 
 	}
 
 	// Create a new Pull Object to test this integration
@@ -36,19 +37,19 @@ func TestFederationHandler(c *gin.Context) {
 			fed.EndpointDataset),
 		"",
 		"",
-		fed.AuthSecretKey,
+		fed.PID,
 		fed.AuthType,
 		false,
 	)
 
 	response = p.TestCredentials()
-	if response.(gin.H)["error"] != "" {
+	if val, ok := response.(gin.H)["error"]; ok && val != nil{
 		c.JSON(http.StatusOK, response)
 		return
 	}
 
 	response = p.TestDatasetsEndpoint()
-	if response.(gin.H)["error"] != "" {
+	if val, ok := response.(gin.H)["error"]; ok && val != nil{
 		c.JSON(http.StatusOK, response)
 		return
 	}

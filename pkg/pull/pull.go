@@ -169,6 +169,8 @@ func (p *Pull) GenerateHeaders(req *http.Request) {
 		req.Header.Add("Authorization", fmt.Sprintf("Bearer %s", p.AccessToken))
 	case "API_KEY":
 		req.Header.Add("apikey", p.AccessToken)
+	case "NO_AUTH":
+		//do nothing if there's no auth set
 	default:
 		customMsg = fmt.Sprintf("unknown auth method %s. aborting", p.Method)
 		utils.WriteGatewayAudit(customMsg, customAction)
@@ -193,7 +195,6 @@ func (p *Pull) TestCredentials() gin.H {
 	if p.Verbose {
 		fmt.Printf("%v", req)
 	}
-
 	result, err := Client.Do(req)
 	if err != nil {
 		return utils.FormResponse(http.StatusBadRequest, false, "Credentials Test", err.Error())
@@ -326,7 +327,7 @@ func (p *Pull) CallForList() (pkg.FederationResponse, error) {
 
 // CallForDataset Is a subsequent step in the data pulling process. Issues
 // an HTTP request against an individual endpoint to probe for data
-func (p *Pull) CallForDataset(id string) (pkg.FederationDataset, error) {
+func (p *Pull) CallForDataset(id string) (map[string]interface{}, error) {
 	var customMsg string
 	customAction := "CallForDataset"
 
@@ -337,7 +338,7 @@ func (p *Pull) CallForDataset(id string) (pkg.FederationDataset, error) {
 		customMsg = "unable to form new request with following error"
 		utils.WriteGatewayAudit(fmt.Sprintf("%s: %v", customMsg, err.Error()), customAction)
 
-		return pkg.FederationDataset{}, fmt.Errorf("%s %v", customMsg, err)
+		return map[string]interface{}{}, fmt.Errorf("%s %v", customMsg, err)
 	}
 
 	p.GenerateHeaders(req)
@@ -351,14 +352,14 @@ func (p *Pull) CallForDataset(id string) (pkg.FederationDataset, error) {
 			fmt.Printf("http call timedout %v", err.Error())
 		}
 
-		return pkg.FederationDataset{}, err
+		return map[string]interface{}{}, err
 	}
 
 	if err != nil {
 		customMsg = "auth call failed with error"
 		utils.WriteGatewayAudit(fmt.Sprintf("%s: %v", customMsg, err.Error()), customAction)
 
-		return pkg.FederationDataset{}, fmt.Errorf("%s %v", customMsg, err)
+		return map[string]interface{}{}, fmt.Errorf("%s %v", customMsg, err)
 	}
 	defer result.Body.Close()
 
@@ -372,7 +373,7 @@ func (p *Pull) CallForDataset(id string) (pkg.FederationDataset, error) {
 			fmt.Printf("non 200 status returned %d flagging federation as invalid. Error: %v", result.StatusCode, err)
 		}
 
-		return pkg.FederationDataset{}, err
+		return map[string]interface{}{}, err
 	}
 
 	if p.Verbose {
@@ -384,12 +385,13 @@ func (p *Pull) CallForDataset(id string) (pkg.FederationDataset, error) {
 		customMsg = "unable to read body of call"
 		utils.WriteGatewayAudit(fmt.Sprintf("%s: %v", customMsg, err.Error()), customAction)
 
-		return pkg.FederationDataset{}, fmt.Errorf("%s: %v", customMsg, err)
+		return map[string]interface{}{}, fmt.Errorf("%s: %v", customMsg, err)
 	}
 
-	var dataset pkg.FederationDataset
-	json.Unmarshal(body, &dataset)
-
+	var dataset map[string]interface{}
+	if err := json.Unmarshal(body, &dataset); err != nil {
+        return map[string]interface{}{}, err
+    }
 	return dataset, nil
 }
 
@@ -454,10 +456,16 @@ func (p *Pull) GetTeamDatasetsFMA(teamId int) ( pkg.DatasetsVersions, error){
 	defer res.Body.Close()
 
 	body, err := io.ReadAll(res.Body)
-
 	var datasetsVersions pkg.DatasetsVersions
 	err = json.Unmarshal(body, &datasetsVersions)
 	if err != nil {
+
+		if string(body) == "[]" {
+			customMsg = "problem with datasetVersions body"
+			utils.WriteGatewayAudit("No existing FMA datasets found for this team", customAction)
+			return pkg.DatasetsVersions{},nil
+		}
+
 		customMsg = "unable to unmarshal body response of call"
 		utils.WriteGatewayAudit(fmt.Sprintf("%s: %v", customMsg, err.Error()), customAction)
 
@@ -517,12 +525,11 @@ func (p *Pull) CreateOrUpdateTeamDataset(teamId string, pid string, metadata str
 	if(update){
 		url = fmt.Sprintf("%s/%s/%s/%s", os.Getenv("GATEWAY_API_URL"), "federations","update",pid) 
 		method = "PUT"
+		fmt.Printf("---> UPDATING existing dataset %s \n",pid)
+	}else {
+		fmt.Printf("---> creating a new dataset! \n")
 	}
 
-	if p.Verbose{
-		fmt.Printf("\n%v",string(jsonPayload))
-	}
-	
 	req, err := http.NewRequest(method, url,
 		bytes.NewBuffer(jsonPayload),
 	)
@@ -569,9 +576,11 @@ func (p *Pull) CreateOrUpdateTeamDataset(teamId string, pid string, metadata str
 		}
 	}
 
-	if p.Verbose {
-		fmt.Println(string(bodyResponse))
-	}
+	var out bytes.Buffer
+    json.Indent(&out, bodyResponse, "", "  ")
+  	fmt.Printf("%s",out.Bytes())
+
+	
 	return nil
 }
 
@@ -580,38 +589,50 @@ func Run() {
 	var customMsg string
 	customAction := "Run"
 
+	fmt.Println("Pulling data...")
+	utils.WriteGatewayAudit("Running the pull service", customAction)
+
 	// Firstly grab a list of all active federations in the api
 	feds, err := GetGatewayFederations()
 	if err != nil {
 		fmt.Printf("%v\n", err.Error())
 	}
-	fmt.Printf("Found %d federations ... \n",len(feds))
+
+	utils.WriteGatewayAudit(fmt.Sprintf("collected %d federations",len(feds)), customAction)
+	fmt.Printf("Found %d federations \n",len(feds))
 	for _, fed := range feds {
 
 		teamId := fed.Team[0].ID
+		fmt.Printf("Working on teamId= %d \n",teamId)
+		utils.WriteGatewayAudit(fmt.Sprintf("Working on teamId= %d ",teamId), customAction)
+
 
 		// Determine if it is time to run this federation
-		// if isTimeToRun(&fed) {
-		// Next gather the gcloud secrets for this federation
-		sec := secrets.NewSecrets(fed.AuthSecretKey, "")
-		ret, err := sec.GetSecret(fed.AuthType)
-		if err != nil {
-			customMsg = "unable to retrieve secrets from gcloud"
-			fmt.Printf(" --> %s: %v \n", customMsg, err.Error())
-			utils.WriteGatewayAudit(fmt.Sprintf("%s: %v", customMsg, err.Error()), customAction)
-
+		if !isTimeToRun(&fed) {
+			fmt.Println("it is not time to run this federation..")
 			continue
-		}
+	    }
+		// Next gather the gcloud secrets for this federation
+		var accessToken string = ""
+		// only need to do this when there is some AUTH
+		if(fed.AuthType != "NO_AUTH"){
+			sec := secrets.NewSecrets(fed.PID, "")
+			ret, err := sec.GetSecret(fed.AuthType)
+			if err != nil {
+				customMsg = "unable to retrieve secrets from gcloud"
+				fmt.Printf(" --> %s: %v \n", customMsg, err.Error())
+				utils.WriteGatewayAudit(fmt.Sprintf("%s: %v", customMsg, err.Error()), customAction)
 
-		var accessToken string
-		if reflect.TypeOf(ret).String() == "secrets.BearerTokenResponse" {
-			accessToken = ret.(secrets.BearerTokenResponse).BearerToken
-		} else if reflect.TypeOf(ret).String() == "secrets.APIKeyResponse" {
-			accessToken = ret.(secrets.APIKeyResponse).APIKey
-		} else { // NO_AUTH
-			accessToken = ""
+				continue
+			}
+			
+			if reflect.TypeOf(ret).String() == "secrets.BearerTokenResponse" {
+				accessToken = ret.(secrets.BearerTokenResponse).BearerToken
+			} else if reflect.TypeOf(ret).String() == "secrets.APIKeyResponse" {
+				accessToken = ret.(secrets.APIKeyResponse).APIKey
+			} 
 		}
-
+	
 		// Create a new Pull object to action the request
 		p := NewPull(
 			fed.ID,
@@ -640,6 +661,7 @@ func Run() {
 		if p.Verbose {
 			fmt.Printf("Number of datasets: %d\n",len(list.Items));
 		}
+		utils.WriteGatewayAudit(fmt.Sprintf("Number of datasets: %d\n",len(list.Items)), customAction)
 
 		//find all the pids of datasets in the FMA payload
 		var fedPids []string;
@@ -691,6 +713,17 @@ func Run() {
 				}
 			}
 
+			if (version != dataset["version"]){
+
+				msg := fmt.Errorf("version mis-match... %s != %s ... skipping",version,dataset["version"])
+				customMsg = "Version in /datasets does not match this version"
+				utils.WriteGatewayAudit(fmt.Sprintf("%s: %v", customMsg, msg), customAction)
+				if p.Verbose {
+					fmt.Printf("%v\n", msg)
+				}
+				continue
+			}
+
 			jsonString, err := json.Marshal(dataset)
 			if err != nil {
 				InvalidateFederationDueToFailure(fed.ID)
@@ -713,10 +746,14 @@ func Run() {
 				versionAlreadyInGateway = utils.StringInSlice(version,versions)
 			}
 
+			fmt.Printf("existsInGateway=%t, version_in_gateway=%t \n",existsInGateway, versionAlreadyInGateway)
+			fmt.Printf("--> version=%s \n ",version)
+			fmt.Printf("--> versions=%v \n ",existingPidsAndVersions[pid].Versions)
+
 			if existsInGateway {
 				if versionAlreadyInGateway {
 					if p.Verbose {
-						fmt.Printf("Skipping pid=%s version=%s as dataset is already in the gateway", pid, string(item.Version))
+						fmt.Printf("Skipping pid=%s version=%s as dataset is already in the gateway\n", pid, string(item.Version))
 					}
 					continue 
 				} else {

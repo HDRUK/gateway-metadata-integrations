@@ -147,6 +147,42 @@ func (s *Secrets) CreateSecret(parent, secretID, payload string) (string, error)
 	return secretName, nil
 }
 
+// UpdateSecret Attempts to update an existing secret on the given `path`,
+// determined by `secretID` within gcloud. Returns the path on success
+// or an error otherwise.
+func (s *Secrets) UpdateSecret(parent, secretID, payload string) (string, error) {
+	var customMsg string
+	customAction := "UpdateSecret"
+
+	ctx := context.Background()
+	client, err := secretmanager.NewClient(ctx)
+	if err != nil {
+		customMsg = "failed to create secretmanager client"
+		utils.WriteGatewayAudit(fmt.Sprintf("%s: %v", customMsg, err.Error()), customAction)
+		return "", fmt.Errorf("%s: %v", customMsg, err)
+	}
+	defer client.Close()
+
+	secretName := fmt.Sprintf("%s/secrets/%s", os.Getenv("GOOGLE_APPLICATION_PROJECT_PATH"), s.Parent)
+
+	versionReq := &secretmanagerpb.AddSecretVersionRequest{
+		Parent: secretName,
+		Payload: &secretmanagerpb.SecretPayload{
+			Data: []byte(payload),
+		},
+	}
+	_, err = client.AddSecretVersion(ctx, versionReq)
+	if err != nil {
+		customMsg = "failed to add a new secret version"
+		utils.WriteGatewayAudit(fmt.Sprintf("%s: %v", customMsg, err.Error()), customAction)
+
+		return "", fmt.Errorf("%s: %v", customMsg, err)
+	}
+
+	return secretName, nil
+}
+
+
 // AddSecretVersion Updates a secret to the new `payload` incrementing
 // the gcloud secret version. Returns the secret path on success, error
 // otherwise.
