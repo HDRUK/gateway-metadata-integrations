@@ -26,7 +26,9 @@ jobs:
 
             - name: Read VERSION file
               id: getversion
-              run: echo "version=$(cat version.yaml)" >> $GITHUB_OUTPUT
+              run: | 
+                sed -n 's/^appVersion:\(.*\)/\1/p' < chart/metadata-fed/Chart.yaml > version
+                echo "version=$(sed '/.*\"\(.*\)\".*/ s//\1/g' version)" >> $GITHUB_OUTPUT
 
             - name: Google Auth
               id: auth
