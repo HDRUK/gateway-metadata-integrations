@@ -1,12 +1,14 @@
 package utils
 
 import (
-	"bytes"
+	"context"
 	"fmt"
-	"net/http"
+	"log/slog"
 	"os"
 	"strconv"
+	"time"
 
+	"cloud.google.com/go/pubsub"
 	"github.com/gin-gonic/gin"
 )
 
@@ -65,7 +67,7 @@ func FindMissingElements(list1, list2 []string) []string {
 // WriteGatewayAudit Helper function to write logs to the gateway api audit
 // log
 func WriteGatewayAudit(message, actionType string) {
-	enabled, err := strconv.Atoi(os.Getenv("GATEWAY_AUDIT_ENABLED"))
+	enabled, err := strconv.Atoi(os.Getenv("AUDIT_LOG_ENABLED"))
 	if err != nil {
 		enabled = 0 // couldn't read config, so avoid spamming the API
 	}
@@ -74,32 +76,34 @@ func WriteGatewayAudit(message, actionType string) {
 		return
 	}
 
+	ctx := context.Background()
+	projectId := os.Getenv("PUBSUB_PROJECT_ID")
+	topicName := os.Getenv("PUBSUB_TOPIC_NAME")
+
+	client, err := pubsub.NewClient(ctx, projectId)
+	if err != nil {
+		slog.Info(fmt.Sprintf("Failed to create client: %s", err.Error()))
+	}
+	defer client.Close()
+
 	payload := []byte(
 		fmt.Sprintf(`{
 			"user_id": %d,
 			"team_id": %d,
 			"description": "%s",
 			"action_type": "%s",
-			"action_service": "%s"
-		}`, -99, -99, message, actionType, "FMA2"))
+			"action_service": "%s",
+			"created_at": %d
+		}`, -99, -99, message, actionType, "FMA2", time.Now().UnixMicro()))
 
-	req, err := http.NewRequest(
-		"POST",
-		fmt.Sprintf("%s/%s", os.Getenv("GATEWAY_API_URL"), "audit"),
-		bytes.NewBuffer(payload),
-	)
+	pubSubMessage := &pubsub.Message{Data: payload}
+
+	topic := client.Topic(topicName)
+	res := topic.Publish(ctx, pubSubMessage)
+
+	id, err := res.Get(ctx)
 	if err != nil {
-		fmt.Printf("unable to form new request for api audit log entry %v", err.Error())
+		slog.Info(fmt.Sprintln(err.Error()))
 	}
-
-	req.Header.Add("Content-Type", "application/json")
-
-	client := &http.Client{}
-	res, err := client.Do(req)
-	if err != nil {
-		fmt.Printf("unable to call gateway api for audit log entry %v", err.Error())
-	}
-	defer res.Body.Close()
-
-	fmt.Printf("%v", payload)
+	slog.Debug(fmt.Sprintf("Message published, id: %s", id))
 }
