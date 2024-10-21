@@ -134,7 +134,7 @@ func (t *PullTestSuite) testGetFederations() []pkg.Federation {
 		{
 			"id": 1,
 			"auth_type": "bearer",
-			"auth_secret_key": "projects/987760029877/secrets/FMA_UAT_fma_test_team_new/versions/latest",
+			"auth_secret_key": "projects/987760029877/secrets/GMI_UAT_gmi_test_team_new/versions/latest",
 			"endpoint_baseurl": "https://fma-custodian-test-server-pljgro4dzq-nw.a.run.app",
 			"endpoint_datasets": "/api/v1/datasets",
 			"endpoint_dataset": "/api/v1/datasets/{id}",
@@ -239,7 +239,7 @@ func TestPullTestSuite(t *testing.T) {
 // 		fmt.Sprintf("%s%s", "https://fma-custodian-test-server-pljgro4dzq-nw.a.run.app", "/api/v1/datasets/{id}"),
 // 		"",
 // 		"",
-// 		"FMA_UAT_fma_test_team_new",
+// 		"GMI_UAT_gmi_test_team_new",
 // 		"api_key",
 // 		true,
 // 	)
@@ -252,7 +252,7 @@ func TestPullTestSuite(t *testing.T) {
 // }
 
 // func TestItReturns200OnValidCredentials(t *testing.T) {
-// 	sec := secrets.NewSecrets("FMA_UAT_fma_test_team_new", "")
+// 	sec := secrets.NewSecrets("GMI_UAT_gmi_test_team_new", "")
 // 	ret, err := sec.GetSecret("api_key")
 // 	assert.EqualValues(t, err, nil)
 
