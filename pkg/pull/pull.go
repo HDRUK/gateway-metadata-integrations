@@ -61,7 +61,7 @@ func NewPull(id int, datasetsUri, datasetUri, username, password, accessToken, m
 func init() {
 	_ = godotenv.Load()
 
-	timeoutSeconds, err := strconv.Atoi(os.Getenv("FMA_DEFAULT_TIMEOUT_SECONDS"))
+	timeoutSeconds, err := strconv.Atoi(os.Getenv("GMI_DEFAULT_TIMEOUT_SECONDS"))
 	if err != nil {
 		utils.WriteGatewayAudit(fmt.Sprintf("unabled to determine default timeout value %v", err.Error()), "CONFIG")
 		timeoutSeconds = 10
@@ -390,16 +390,16 @@ func (p *Pull) CallForDataset(id string) (map[string]interface{}, error) {
 
 	var dataset map[string]interface{}
 	if err := json.Unmarshal(body, &dataset); err != nil {
-        return map[string]interface{}{}, err
-    }
+		return map[string]interface{}{}, err
+	}
 	return dataset, nil
 }
 
-func (p *Pull) FindDataset(pid string) (pkg.Dataset, error){
+func (p *Pull) FindDataset(pid string) (pkg.Dataset, error) {
 	var customMsg string
 	customAction := "GetDatasetStatus"
 
-	req, err := http.NewRequest("GET", fmt.Sprintf("%s/%s/%s", os.Getenv("GATEWAY_API_URL"), "datasets", pid),nil)
+	req, err := http.NewRequest("GET", fmt.Sprintf("%s/%s/%s", os.Getenv("GATEWAY_API_URL"), "datasets", pid), nil)
 
 	if err != nil {
 		customMsg = "unable to create new request for gateway api pull"
@@ -428,25 +428,25 @@ func (p *Pull) FindDataset(pid string) (pkg.Dataset, error){
 	return dataset, nil
 }
 
-func (p *Pull) GetTeamDatasetsFMA(teamId int) ( pkg.DatasetsVersions, error){
+func (p *Pull) GetTeamDatasetsGMI(teamId int) (pkg.DatasetsVersions, error) {
 	var customMsg string
-	customAction := "GetTeamDatasetsFMA"
+	customAction := "GetTeamDatasetsGMI"
 
-	url := fmt.Sprintf("%s/%s?team_id=%d&create_origin=%s&onlyDatasets=true", os.Getenv("GATEWAY_API_URL"), "datasets", teamId,"FMA")
+	url := fmt.Sprintf("%s/%s?team_id=%d&create_origin=%s&onlyDatasets=true", os.Getenv("GATEWAY_API_URL"), "datasets", teamId, "GMI")
 
 	req, err := http.NewRequest("GET", url, nil)
 
 	if err != nil {
 		customMsg = "unable to create new request for gateway api pull"
 		utils.WriteGatewayAudit(fmt.Sprintf("%s: %v", customMsg, err.Error()), customAction)
-		return  pkg.DatasetsVersions{}, fmt.Errorf("%s: %v", customMsg, err)
+		return pkg.DatasetsVersions{}, fmt.Errorf("%s: %v", customMsg, err)
 	}
 
 	res, err := Client.Do(req)
 	if os.IsTimeout(err) {
 		customMsg = "http call timed out"
 		utils.WriteGatewayAudit(fmt.Sprintf("%s %v", customMsg, err.Error()), customAction)
-		return  pkg.DatasetsVersions{}, fmt.Errorf("%s %v", customMsg, err)
+		return pkg.DatasetsVersions{}, fmt.Errorf("%s %v", customMsg, err)
 	}
 	if err != nil {
 		customMsg = "unable to pull datasets for a team from the gateway api"
@@ -462,8 +462,8 @@ func (p *Pull) GetTeamDatasetsFMA(teamId int) ( pkg.DatasetsVersions, error){
 
 		if string(body) == "[]" {
 			customMsg = "problem with datasetVersions body"
-			utils.WriteGatewayAudit("No existing FMA datasets found for this team", customAction)
-			return pkg.DatasetsVersions{},nil
+			utils.WriteGatewayAudit("No existing GMI datasets found for this team", customAction)
+			return pkg.DatasetsVersions{}, nil
 		}
 
 		customMsg = "unable to unmarshal body response of call"
@@ -477,11 +477,11 @@ func (p *Pull) GetTeamDatasetsFMA(teamId int) ( pkg.DatasetsVersions, error){
 	return datasetsVersions, nil
 }
 
-func (p *Pull) DeleteTeamDataset(teamId int, pid string) (error){
+func (p *Pull) DeleteTeamDataset(teamId int, pid string) error {
 	var customMsg string
 	customAction := "DeleteTeamDataset"
 
-	req, err := http.NewRequest("DELETE", fmt.Sprintf("%s/%s/%s/%s", os.Getenv("GATEWAY_API_URL"), "federations","delete", pid),nil)
+	req, err := http.NewRequest("DELETE", fmt.Sprintf("%s/%s/%s/%s", os.Getenv("GATEWAY_API_URL"), "federations", "delete", pid), nil)
 
 	if err != nil {
 		customMsg = "unable to create new request for gateway api pull"
@@ -504,7 +504,7 @@ func (p *Pull) DeleteTeamDataset(teamId int, pid string) (error){
 	return nil
 }
 
-func (p *Pull) CreateOrUpdateTeamDataset(teamId string, pid string, metadata string, update bool) (error){
+func (p *Pull) CreateOrUpdateTeamDataset(teamId string, pid string, metadata string, update bool) error {
 	var customMsg string
 	customAction := "CreateTeamDataset"
 
@@ -513,20 +513,20 @@ func (p *Pull) CreateOrUpdateTeamDataset(teamId string, pid string, metadata str
 		"team_id":       teamId,
 		"user_id":       os.Getenv("GATEWAY_API_USER_ID"),
 		"metadata":      metadata,
-		"create_origin": "FMA",
+		"create_origin": "GMI",
 		"status":        "ACTIVE",
 		"pid":           pid,
 	}
 
 	jsonPayload, _ := json.Marshal(body)
 
-	url := fmt.Sprintf("%s/%s", os.Getenv("GATEWAY_API_URL"), "federations") 
+	url := fmt.Sprintf("%s/%s", os.Getenv("GATEWAY_API_URL"), "federations")
 	method := "POST"
-	if(update){
-		url = fmt.Sprintf("%s/%s/%s/%s", os.Getenv("GATEWAY_API_URL"), "federations","update",pid) 
+	if update {
+		url = fmt.Sprintf("%s/%s/%s/%s", os.Getenv("GATEWAY_API_URL"), "federations", "update", pid)
 		method = "PUT"
-		fmt.Printf("---> UPDATING existing dataset %s \n",pid)
-	}else {
+		fmt.Printf("---> UPDATING existing dataset %s \n", pid)
+	} else {
 		fmt.Printf("---> creating a new dataset! \n")
 	}
 
@@ -577,10 +577,9 @@ func (p *Pull) CreateOrUpdateTeamDataset(teamId string, pid string, metadata str
 	}
 
 	var out bytes.Buffer
-    json.Indent(&out, bodyResponse, "", "  ")
-  	fmt.Printf("%s",out.Bytes())
+	json.Indent(&out, bodyResponse, "", "  ")
+	fmt.Printf("%s", out.Bytes())
 
-	
 	return nil
 }
 
@@ -598,24 +597,23 @@ func Run() {
 		fmt.Printf("%v\n", err.Error())
 	}
 
-	utils.WriteGatewayAudit(fmt.Sprintf("collected %d federations",len(feds)), customAction)
-	fmt.Printf("Found %d federations \n",len(feds))
+	utils.WriteGatewayAudit(fmt.Sprintf("collected %d federations", len(feds)), customAction)
+	fmt.Printf("Found %d federations \n", len(feds))
 	for _, fed := range feds {
 
 		teamId := fed.Team[0].ID
-		fmt.Printf("Working on teamId= %d \n",teamId)
-		utils.WriteGatewayAudit(fmt.Sprintf("Working on teamId= %d ",teamId), customAction)
-
+		fmt.Printf("Working on teamId= %d \n", teamId)
+		utils.WriteGatewayAudit(fmt.Sprintf("Working on teamId= %d ", teamId), customAction)
 
 		// Determine if it is time to run this federation
 		if !isTimeToRun(&fed) {
 			fmt.Println("it is not time to run this federation..")
 			continue
-	    }
+		}
 		// Next gather the gcloud secrets for this federation
 		var accessToken string = ""
 		// only need to do this when there is some AUTH
-		if(fed.AuthType != "NO_AUTH"){
+		if fed.AuthType != "NO_AUTH" {
 			sec := secrets.NewSecrets(fed.PID, "")
 			ret, err := sec.GetSecret(fed.AuthType)
 			if err != nil {
@@ -625,14 +623,14 @@ func Run() {
 
 				continue
 			}
-			
+
 			if reflect.TypeOf(ret).String() == "secrets.BearerTokenResponse" {
 				accessToken = ret.(secrets.BearerTokenResponse).BearerToken
 			} else if reflect.TypeOf(ret).String() == "secrets.APIKeyResponse" {
 				accessToken = ret.(secrets.APIKeyResponse).APIKey
-			} 
+			}
 		}
-	
+
 		// Create a new Pull object to action the request
 		p := NewPull(
 			fed.ID,
@@ -659,43 +657,43 @@ func Run() {
 		}
 
 		if p.Verbose {
-			fmt.Printf("Number of datasets: %d\n",len(list.Items));
+			fmt.Printf("Number of datasets: %d\n", len(list.Items))
 		}
-		utils.WriteGatewayAudit(fmt.Sprintf("Number of datasets: %d\n",len(list.Items)), customAction)
+		utils.WriteGatewayAudit(fmt.Sprintf("Number of datasets: %d\n", len(list.Items)), customAction)
 
-		//find all the pids of datasets in the FMA payload
-		var fedPids []string;
+		//find all the pids of datasets in the GMI payload
+		var fedPids []string
 		for _, item := range list.Items {
 			pid := string(item.PersistentID)
-			fmt.Println(fmt.Sprintf("teamId: %s, pid: %s, version: %s\n",strconv.Itoa(fed.Team[0].ID),pid,string(item.Version)));
-			fedPids = append(fedPids,pid)
+			fmt.Println(fmt.Sprintf("teamId: %s, pid: %s, version: %s\n", strconv.Itoa(fed.Team[0].ID), pid, string(item.Version)))
+			fedPids = append(fedPids, pid)
 		}
 
-		//retrieve the pids already in the gateway for this team, that have been created via FMA (create_origin="FMA")
-		existingPidsAndVersions,err := p.GetTeamDatasetsFMA(teamId)
+		//retrieve the pids already in the gateway for this team, that have been created via GMI (create_origin="GMI")
+		existingPidsAndVersions, err := p.GetTeamDatasetsGMI(teamId)
 
 		var existingGatewayDatasetPids []string
 		for key := range existingPidsAndVersions {
 			existingGatewayDatasetPids = append(existingGatewayDatasetPids, key)
 		}
 
-		if(len(existingGatewayDatasetPids)>0){
+		if len(existingGatewayDatasetPids) > 0 {
 			if p.Verbose {
-				fmt.Printf(fmt.Sprintf("Existing pids for team_id=%d %v\n",teamId,existingGatewayDatasetPids));
+				fmt.Printf(fmt.Sprintf("Existing pids for team_id=%d %v\n", teamId, existingGatewayDatasetPids))
 			}
-			// find if there are any existing pids created with FMA previously that are no longer in the payload
-			existingPidForDeletion := utils.FindMissingElements(existingGatewayDatasetPids,fedPids)
-			if (len(existingPidForDeletion)>0){
+			// find if there are any existing pids created with GMI previously that are no longer in the payload
+			existingPidForDeletion := utils.FindMissingElements(existingGatewayDatasetPids, fedPids)
+			if len(existingPidForDeletion) > 0 {
 				if p.Verbose {
-					fmt.Printf("Up for deletion... %v\n",existingPidForDeletion);
+					fmt.Printf("Up for deletion... %v\n", existingPidForDeletion)
 				}
 				for _, pid := range existingPidForDeletion {
-					//delete any existing FMA created datasets that are no longer in the FMA payload
-					p.DeleteTeamDataset(teamId,pid)
+					//delete any existing GMI created datasets that are no longer in the GMI payload
+					p.DeleteTeamDataset(teamId, pid)
 				}
 			}
 		}
-		
+
 		for _, item := range list.Items {
 
 			pid := item.PersistentID
@@ -713,9 +711,9 @@ func Run() {
 				}
 			}
 
-			if (version != dataset["version"]){
+			if version != dataset["version"] {
 
-				msg := fmt.Errorf("version mis-match... %s != %s ... skipping",version,dataset["version"])
+				msg := fmt.Errorf("version mis-match... %s != %s ... skipping", version, dataset["version"])
 				customMsg = "Version in /datasets does not match this version"
 				utils.WriteGatewayAudit(fmt.Sprintf("%s: %v", customMsg, msg), customAction)
 				if p.Verbose {
@@ -737,41 +735,40 @@ func Run() {
 			}
 
 			//check if the dataset is already in the gateway
-			existsInGateway := utils.StringInSlice(pid,existingGatewayDatasetPids)
+			existsInGateway := utils.StringInSlice(pid, existingGatewayDatasetPids)
 
 			//check if the version number is already in the gateway
-			versionAlreadyInGateway := false 
-			if(existsInGateway){
+			versionAlreadyInGateway := false
+			if existsInGateway {
 				versions := existingPidsAndVersions[pid].Versions
-				versionAlreadyInGateway = utils.StringInSlice(version,versions)
+				versionAlreadyInGateway = utils.StringInSlice(version, versions)
 			}
 
-			fmt.Printf("existsInGateway=%t, version_in_gateway=%t \n",existsInGateway, versionAlreadyInGateway)
-			fmt.Printf("--> version=%s \n ",version)
-			fmt.Printf("--> versions=%v \n ",existingPidsAndVersions[pid].Versions)
+			fmt.Printf("existsInGateway=%t, version_in_gateway=%t \n", existsInGateway, versionAlreadyInGateway)
+			fmt.Printf("--> version=%s \n ", version)
+			fmt.Printf("--> versions=%v \n ", existingPidsAndVersions[pid].Versions)
 
 			if existsInGateway {
 				if versionAlreadyInGateway {
 					if p.Verbose {
 						fmt.Printf("Skipping pid=%s version=%s as dataset is already in the gateway\n", pid, string(item.Version))
 					}
-					continue 
+					continue
 				} else {
 					if p.Verbose {
 						fmt.Printf("Updating dataset pid=%s", pid)
 					}
-					p.CreateOrUpdateTeamDataset(strconv.Itoa(fed.Team[0].ID),pid,string(jsonString),true)
+					p.CreateOrUpdateTeamDataset(strconv.Itoa(fed.Team[0].ID), pid, string(jsonString), true)
 				}
 			} else {
 				if p.Verbose {
-						fmt.Printf("Create a new dataset pid=%s", pid)
+					fmt.Printf("Create a new dataset pid=%s", pid)
 				}
-				p.CreateOrUpdateTeamDataset(strconv.Itoa(fed.Team[0].ID),pid,string(jsonString),false)
+				p.CreateOrUpdateTeamDataset(strconv.Itoa(fed.Team[0].ID), pid, string(jsonString), false)
 			}
-		}//loop over datasets
-	}//loop over feds
+		} //loop over datasets
+	} //loop over feds
 }
-
 
 func determineOperationRequired(fed *pkg.Federation, dataset *pkg.FederationDataset) {
 
