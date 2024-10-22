@@ -37,12 +37,12 @@ func IsSuccessfulStatusCode(status int) bool {
 // StringInSlice helper function that checks if a string is in an array of strings
 // to return true or false
 func StringInSlice(a string, list []string) bool {
-    for _, b := range list {
-        if b == a {
-            return true
-        }
-    }
-    return false
+	for _, b := range list {
+		if b == a {
+			return true
+		}
+	}
+	return false
 }
 
 // FindMissingElements helper functions that loops over a list to find elements
@@ -61,8 +61,6 @@ func FindMissingElements(list1, list2 []string) []string {
 	}
 	return missingElements
 }
-
-
 
 // WriteGatewayAudit Helper function to write logs to the gateway api audit
 // log
@@ -94,7 +92,7 @@ func WriteGatewayAudit(message, actionType string) {
 			"action_type": "%s",
 			"action_service": "%s",
 			"created_at": %d
-		}`, -99, -99, message, actionType, "FMA2", time.Now().UnixMicro()))
+		}`, -99, -99, message, actionType, "GMI2", time.Now().UnixMicro()))
 
 	pubSubMessage := &pubsub.Message{Data: payload}
 

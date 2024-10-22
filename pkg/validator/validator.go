@@ -11,9 +11,9 @@ import (
 // our json schema for federation services. Returns true on success,
 // false otherwise. Upon error, errors are output to stdout
 func ValidateSchema(document string) (bool, error) {
-	var schemaUrl = os.Getenv("FMA_DEFAULT_SCHEMA_VALIDATION_URL")
+	var schemaUrl = os.Getenv("GMI_DEFAULT_SCHEMA_VALIDATION_URL")
 	if schemaUrl == "" {
-		schemaUrl = "https://raw.githubusercontent.com/HDRUK/schemata-2/master/hdr_schemata/models/FMA/fma.schema.json"
+		schemaUrl = "https://raw.githubusercontent.com/HDRUK/schemata-2/master/hdr_schemata/models/GMI/gmi.schema.json"
 	}
 
 	schemaLoader := gojsonschema.NewReferenceLoader(schemaUrl)

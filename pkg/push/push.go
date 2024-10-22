@@ -25,7 +25,7 @@ func Run() bool {
 	}))
 
 	server := &http.Server{
-		Addr:           fmt.Sprintf(":%s", os.Getenv("FMA_PORT")),
+		Addr:           fmt.Sprintf(":%s", os.Getenv("GMI_PORT")),
 		Handler:        router,
 		ReadTimeout:    10 * time.Second,
 		WriteTimeout:   10 * time.Second,
