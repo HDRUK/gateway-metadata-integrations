@@ -163,7 +163,7 @@ func (s *Secrets) UpdateSecret(parent, secretID, payload string) (string, error)
 	}
 	defer client.Close()
 
-	secretName := fmt.Sprintf("%s/secrets/%s", os.Getenv("GOOGLE_APPLICATION_PROJECT_PATH"), s.Parent)
+	secretName := fmt.Sprintf("%s/secrets/%s", os.Getenv("GOOGLE_APPLICATION_PROJECT_PATH"), secretID)
 
 	versionReq := &secretmanagerpb.AddSecretVersionRequest{
 		Parent: secretName,
@@ -181,7 +181,6 @@ func (s *Secrets) UpdateSecret(parent, secretID, payload string) (string, error)
 
 	return secretName, nil
 }
-
 
 // AddSecretVersion Updates a secret to the new `payload` incrementing
 // the gcloud secret version. Returns the secret path on success, error
