@@ -170,7 +170,7 @@ func (p *Pull) GenerateHeaders(req *http.Request) {
 	case "API_KEY":
 		req.Header.Add("apikey", p.AccessToken)
 	case "NO_AUTH":
-		req.Header.Add("Authorization", fmt.Sprintf("Bearer %s", p.AccessToken))
+		//do nothing if there's no auth set
 	default:
 		customMsg = fmt.Sprintf("unknown auth method %s. aborting", p.Method)
 		utils.WriteGatewayAudit(customMsg, customAction)
@@ -544,6 +544,13 @@ func (p *Pull) CreateOrUpdateTeamDataset(teamId string, pid string, metadata str
 	}
 	req.Header.Add("Content-Type", "application/json")
 
+	token, err := getServiceUserJWT()
+	if err != nil {
+		fmt.Errorf("failed to marshal login payload: %v", err)
+	}
+
+	req.Header.Add("Authorization", fmt.Sprintf("Bearer %s", token))
+
 	if err != nil {
 		customMsg = "unable to prepare gateway api call with processed dataset"
 		utils.WriteGatewayAudit(fmt.Sprintf("%s: %v", customMsg, err.Error()), customAction)
@@ -658,14 +665,7 @@ func Run() {
 		// Next gather the gcloud secrets for this federation
 		var accessToken string = ""
 
-		if fed.AuthType == "NO_AUTH" {
-			token, err := getServiceUserJWT()
-			if err != nil {
-				fmt.Errorf("failed to marshal login payload: %v", err)
-			}
-			accessToken = token
-		}
-
+		// only need to do this when there is some AUTH
 		if fed.AuthType != "NO_AUTH" {
 			sec := secrets.NewSecrets(fed.PID, "")
 			ret, err := sec.GetSecret(fed.AuthType)
