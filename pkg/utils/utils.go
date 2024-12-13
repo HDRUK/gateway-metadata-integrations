@@ -74,7 +74,7 @@ func GetServiceUserJWT() (string, error) {
 		return "", fmt.Errorf("SERVICE_EMAIL and SERVICE_PASSWORD are missing")
 	}
 
-	authURL := fmt.Sprintf("%s/access_token", os.Getenv("GATEWAY_API_URL"))
+	authURL := os.Getenv("GATEWAY_API_AUTH_URL")
 
 	payload := map[string]string{
 		"email":    email,
@@ -102,7 +102,7 @@ func GetServiceUserJWT() (string, error) {
 		return "", fmt.Errorf("failed to parse login response: %v", err)
 	}
 
-	token, ok := result["token"]
+	token, ok := result["access_token"]
 	if !ok {
 		return "", fmt.Errorf("token not found in login response")
 	}
