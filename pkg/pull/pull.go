@@ -481,7 +481,14 @@ func (p *Pull) DeleteTeamDataset(teamId int, pid string) error {
 	var customMsg string
 	customAction := "DeleteTeamDataset"
 
+	token, err := utils.GetServiceUserJWT()
+
+	if err != nil {
+		return fmt.Errorf("failed to marshal login payload: %v", err)
+	}
+
 	req, err := http.NewRequest("DELETE", fmt.Sprintf("%s/%s/%s/%s", os.Getenv("GATEWAY_API_URL"), "federations", "delete", pid), nil)
+	req.Header.Add("Authorization", fmt.Sprintf("Bearer %s", token))
 
 	if err != nil {
 		customMsg = "unable to create new request for gateway api pull"
@@ -544,9 +551,10 @@ func (p *Pull) CreateOrUpdateTeamDataset(teamId string, pid string, metadata str
 	}
 	req.Header.Add("Content-Type", "application/json")
 
-	token, err := getServiceUserJWT()
+	token, err := utils.GetServiceUserJWT()
+
 	if err != nil {
-		fmt.Errorf("failed to marshal login payload: %v", err)
+		return fmt.Errorf("failed to marshal login payload: %v", err)
 	}
 
 	req.Header.Add("Authorization", fmt.Sprintf("Bearer %s", token))
@@ -588,51 +596,6 @@ func (p *Pull) CreateOrUpdateTeamDataset(teamId string, pid string, metadata str
 	fmt.Printf("%s", out.Bytes())
 
 	return nil
-}
-
-func getServiceUserJWT() (string, error) {
-
-	email := os.Getenv("SERVICE_EMAIL")
-	password := os.Getenv("SERVICE_PASSWORD")
-
-	if email == "" || password == "" {
-		fmt.Errorf("SERVICE_EMAIL and SERVICE_PASSWORD are missing")
-	}
-
-	authURL := fmt.Sprintf("%s/access_token", os.Getenv("GATEWAY_API_URL"))
-
-	payload := map[string]string{
-		"email":    email,
-		"password": password,
-	}
-
-	payloadBytes, err := json.Marshal(payload)
-	if err != nil {
-		return "", fmt.Errorf("failed to marshal login payload: %v", err)
-	}
-
-	resp, err := http.Post(authURL, "application/json", bytes.NewBuffer(payloadBytes))
-	if err != nil {
-		return "", fmt.Errorf("failed to make login request: %v", err)
-	}
-	defer resp.Body.Close()
-
-	if resp.StatusCode != http.StatusOK {
-		return "", fmt.Errorf("login request failed with status: %s", resp.Status)
-	}
-
-	var result map[string]string
-	err = json.NewDecoder(resp.Body).Decode(&result)
-	if err != nil {
-		return "", fmt.Errorf("failed to parse login response: %v", err)
-	}
-
-	token, ok := result["token"]
-	if !ok {
-		return "", fmt.Errorf("token not found in login response")
-	}
-
-	return token, nil
 }
 
 // Run Runs the functionality of this process
