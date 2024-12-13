@@ -170,7 +170,7 @@ func (p *Pull) GenerateHeaders(req *http.Request) {
 	case "API_KEY":
 		req.Header.Add("apikey", p.AccessToken)
 	case "NO_AUTH":
-		//do nothing if there's no auth set
+		req.Header.Add("Authorization", fmt.Sprintf("Bearer %s", p.AccessToken))
 	default:
 		customMsg = fmt.Sprintf("unknown auth method %s. aborting", p.Method)
 		utils.WriteGatewayAudit(customMsg, customAction)
@@ -583,6 +583,51 @@ func (p *Pull) CreateOrUpdateTeamDataset(teamId string, pid string, metadata str
 	return nil
 }
 
+func getServiceUserJWT() (string, error) {
+
+	email := os.Getenv("SERVICE_EMAIL")
+	password := os.Getenv("SERVICE_PASSWORD")
+
+	if email == "" || password == "" {
+		fmt.Errorf("SERVICE_EMAIL and SERVICE_PASSWORD are missing")
+	}
+
+	authURL := fmt.Sprintf("%s/access_token", os.Getenv("GATEWAY_API_URL"))
+
+	payload := map[string]string{
+		"email":    email,
+		"password": password,
+	}
+
+	payloadBytes, err := json.Marshal(payload)
+	if err != nil {
+		return "", fmt.Errorf("failed to marshal login payload: %v", err)
+	}
+
+	resp, err := http.Post(authURL, "application/json", bytes.NewBuffer(payloadBytes))
+	if err != nil {
+		return "", fmt.Errorf("failed to make login request: %v", err)
+	}
+	defer resp.Body.Close()
+
+	if resp.StatusCode != http.StatusOK {
+		return "", fmt.Errorf("login request failed with status: %s", resp.Status)
+	}
+
+	var result map[string]string
+	err = json.NewDecoder(resp.Body).Decode(&result)
+	if err != nil {
+		return "", fmt.Errorf("failed to parse login response: %v", err)
+	}
+
+	token, ok := result["token"]
+	if !ok {
+		return "", fmt.Errorf("token not found in login response")
+	}
+
+	return token, nil
+}
+
 // Run Runs the functionality of this process
 func Run() {
 	var customMsg string
@@ -612,7 +657,15 @@ func Run() {
 		}
 		// Next gather the gcloud secrets for this federation
 		var accessToken string = ""
-		// only need to do this when there is some AUTH
+
+		if fed.AuthType == "NO_AUTH" {
+			token, err := getServiceUserJWT()
+			if err != nil {
+				fmt.Errorf("failed to marshal login payload: %v", err)
+			}
+			accessToken = token
+		}
+
 		if fed.AuthType != "NO_AUTH" {
 			sec := secrets.NewSecrets(fed.PID, "")
 			ret, err := sec.GetSecret(fed.AuthType)
