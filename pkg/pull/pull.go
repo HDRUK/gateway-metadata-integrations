@@ -491,13 +491,19 @@ func (p *Pull) DeleteTeamDataset(teamId int, pid string) error {
 	var customMsg string
 	customAction := "DeleteTeamDataset"
 
+	body := map[string]int{
+		"team_id": teamId,
+	}
+
+	jsonPayload, _ := json.Marshal(body)
+
 	token, err := utils.GetServiceUserJWT()
 
 	if err != nil {
 		return fmt.Errorf("failed to marshal login payload: %v", err)
 	}
 
-	req, err := http.NewRequest("DELETE", fmt.Sprintf("%s/%s/%s/%s", os.Getenv("GATEWAY_API_URL"), "federations", "delete", pid), nil)
+	req, err := http.NewRequest("DELETE", fmt.Sprintf("%s/%s/%s/%s", os.Getenv("GATEWAY_API_URL"), "federations", "delete", pid), bytes.NewBuffer(jsonPayload))
 	req.Header.Add("Authorization", fmt.Sprintf("Bearer %s", token))
 
 	if err != nil {
