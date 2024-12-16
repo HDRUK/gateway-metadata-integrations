@@ -143,15 +143,6 @@ func InvalidateFederationDueToFailure(fed int) bool {
 
 	req.Header.Add("Content-Type", "application/json")
 
-	token, err := utils.GetServiceUserJWT()
-
-	if err != nil {
-		customMsg = "failed to marshal login payload: %v"
-		utils.WriteGatewayAudit(fmt.Sprintf("%s: %v", customMsg, err.Error()), customAction)
-	}
-
-	req.Header.Add("Authorization", fmt.Sprintf("Bearer %s", token))
-
 	res, err := Client.Do(req)
 	if err != nil {
 		customMsg = "unable to update federation via gateway api %v"
