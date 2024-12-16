@@ -143,6 +143,15 @@ func InvalidateFederationDueToFailure(fed int) bool {
 
 	req.Header.Add("Content-Type", "application/json")
 
+	token, err := utils.GetServiceUserJWT()
+
+	if err != nil {
+		customMsg = "failed to marshal login payload: %v"
+		utils.WriteGatewayAudit(fmt.Sprintf("%s: %v", customMsg, err.Error()), customAction)
+	}
+
+	req.Header.Add("Authorization", fmt.Sprintf("Bearer %s", token))
+
 	res, err := Client.Do(req)
 	if err != nil {
 		customMsg = "unable to update federation via gateway api %v"
@@ -482,7 +491,14 @@ func (p *Pull) DeleteTeamDataset(teamId int, pid string) error {
 	var customMsg string
 	customAction := "DeleteTeamDataset"
 
+	token, err := utils.GetServiceUserJWT()
+
+	if err != nil {
+		return fmt.Errorf("failed to marshal login payload: %v", err)
+	}
+
 	req, err := http.NewRequest("DELETE", fmt.Sprintf("%s/%s/%s/%s", os.Getenv("GATEWAY_API_URL"), "federations", "delete", pid), nil)
+	req.Header.Add("Authorization", fmt.Sprintf("Bearer %s", token))
 
 	if err != nil {
 		customMsg = "unable to create new request for gateway api pull"
