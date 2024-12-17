@@ -142,6 +142,7 @@ func InvalidateFederationDueToFailure(fed int) bool {
 	}
 
 	req.Header.Add("Content-Type", "application/json")
+
 	res, err := Client.Do(req)
 	if err != nil {
 		customMsg = "unable to update federation via gateway api %v"
@@ -481,7 +482,20 @@ func (p *Pull) DeleteTeamDataset(teamId int, pid string) error {
 	var customMsg string
 	customAction := "DeleteTeamDataset"
 
-	req, err := http.NewRequest("DELETE", fmt.Sprintf("%s/%s/%s/%s", os.Getenv("GATEWAY_API_URL"), "federations", "delete", pid), nil)
+	body := map[string]int{
+		"team_id": teamId,
+	}
+
+	jsonPayload, _ := json.Marshal(body)
+
+	token, err := utils.GetServiceUserJWT()
+
+	if err != nil {
+		return fmt.Errorf("failed to marshal login payload: %v", err)
+	}
+
+	req, err := http.NewRequest("DELETE", fmt.Sprintf("%s/%s/%s/%s", os.Getenv("GATEWAY_API_URL"), "federations", "delete", pid), bytes.NewBuffer(jsonPayload))
+	req.Header.Add("Authorization", fmt.Sprintf("Bearer %s", token))
 
 	if err != nil {
 		customMsg = "unable to create new request for gateway api pull"
@@ -543,6 +557,14 @@ func (p *Pull) CreateOrUpdateTeamDataset(teamId string, pid string, metadata str
 		}
 	}
 	req.Header.Add("Content-Type", "application/json")
+
+	token, err := utils.GetServiceUserJWT()
+
+	if err != nil {
+		return fmt.Errorf("failed to marshal login payload: %v", err)
+	}
+
+	req.Header.Add("Authorization", fmt.Sprintf("Bearer %s", token))
 
 	if err != nil {
 		customMsg = "unable to prepare gateway api call with processed dataset"
@@ -612,6 +634,7 @@ func Run() {
 		}
 		// Next gather the gcloud secrets for this federation
 		var accessToken string = ""
+
 		// only need to do this when there is some AUTH
 		if fed.AuthType != "NO_AUTH" {
 			sec := secrets.NewSecrets(fed.PID, "")

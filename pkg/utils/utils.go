@@ -1,9 +1,12 @@
 package utils
 
 import (
+	"bytes"
 	"context"
+	"encoding/json"
 	"fmt"
 	"log/slog"
+	"net/http"
 	"os"
 	"strconv"
 	"time"
@@ -60,6 +63,51 @@ func FindMissingElements(list1, list2 []string) []string {
 		}
 	}
 	return missingElements
+}
+
+func GetServiceUserJWT() (string, error) {
+
+	email := os.Getenv("SERVICE_EMAIL")
+	password := os.Getenv("SERVICE_PASSWORD")
+
+	if email == "" || password == "" {
+		return "", fmt.Errorf("SERVICE_EMAIL and SERVICE_PASSWORD are missing")
+	}
+
+	authURL := os.Getenv("GATEWAY_API_AUTH_URL")
+
+	payload := map[string]string{
+		"email":    email,
+		"password": password,
+	}
+
+	payloadBytes, err := json.Marshal(payload)
+	if err != nil {
+		return "", fmt.Errorf("failed to marshal login payload: %v", err)
+	}
+
+	resp, err := http.Post(authURL, "application/json", bytes.NewBuffer(payloadBytes))
+	if err != nil {
+		return "", fmt.Errorf("failed to make login request: %v", err)
+	}
+	defer resp.Body.Close()
+
+	if resp.StatusCode != http.StatusOK {
+		return "", fmt.Errorf("login request failed with status: %s", resp.Status)
+	}
+
+	var result map[string]string
+	err = json.NewDecoder(resp.Body).Decode(&result)
+	if err != nil {
+		return "", fmt.Errorf("failed to parse login response: %v", err)
+	}
+
+	token, ok := result["access_token"]
+	if !ok {
+		return "", fmt.Errorf("token not found in login response")
+	}
+
+	return token, nil
 }
 
 // WriteGatewayAudit Helper function to write logs to the gateway api audit
