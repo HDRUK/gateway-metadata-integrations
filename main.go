@@ -13,7 +13,7 @@ import (
 func main() {
 	err := godotenv.Load()
 	if err != nil {
-		utils.WriteGatewayAudit("can't read .env file. resorting to OS variables", "CONFIG")
+		utils.WriteGatewayAudit("can't read .env file. resorting to OS variables", "CONFIG", "GET")
 	}
 
 	// Run the Push Service in it's own thread

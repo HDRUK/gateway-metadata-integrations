@@ -6,6 +6,7 @@ import (
 	"net/http"
 	"os"
 	"strconv"
+	"time"
 
 	"github.com/gin-gonic/gin"
 )
@@ -35,12 +36,12 @@ func IsSuccessfulStatusCode(status int) bool {
 // StringInSlice helper function that checks if a string is in an array of strings
 // to return true or false
 func StringInSlice(a string, list []string) bool {
-    for _, b := range list {
-        if b == a {
-            return true
-        }
-    }
-    return false
+	for _, b := range list {
+		if b == a {
+			return true
+		}
+	}
+	return false
 }
 
 // FindMissingElements helper functions that loops over a list to find elements
@@ -60,11 +61,9 @@ func FindMissingElements(list1, list2 []string) []string {
 	return missingElements
 }
 
-
-
 // WriteGatewayAudit Helper function to write logs to the gateway api audit
 // log
-func WriteGatewayAudit(message, actionType string) {
+func WriteGatewayAudit(message, actionType string, actionName string) {
 	enabled, err := strconv.Atoi(os.Getenv("GATEWAY_AUDIT_ENABLED"))
 	if err != nil {
 		enabled = 0 // couldn't read config, so avoid spamming the API
@@ -74,14 +73,18 @@ func WriteGatewayAudit(message, actionType string) {
 		return
 	}
 
+	microseconds := time.Now().UnixNano() / 1000
+
 	payload := []byte(
 		fmt.Sprintf(`{
 			"user_id": %d,
 			"team_id": %d,
 			"description": "%s",
 			"action_type": "%s",
-			"action_service": "%s"
-		}`, -99, -99, message, actionType, "FMA2"))
+			"action_service": "%s",
+			"action_name": "%s",
+			"created_at": %d
+		}`, -99, -99, message, actionType, "FMA2", actionName, microseconds))
 
 	req, err := http.NewRequest(
 		"POST",
