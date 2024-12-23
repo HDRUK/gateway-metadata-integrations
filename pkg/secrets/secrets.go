@@ -48,7 +48,7 @@ func (s *Secrets) GetSecret(authType string) (any, error) {
 	client, err := secretmanager.NewClient(ctx)
 	if err != nil {
 		customMsg = "failed to create secretmanager client"
-		utils.WriteGatewayAudit(fmt.Sprintf("%s: %v", customMsg, err.Error()), customAction)
+		utils.WriteGatewayAudit(fmt.Sprintf("%s: %v", customMsg, err.Error()), customAction, "GET")
 
 		return nil, fmt.Errorf("failed to create secretmanager client: %v", err)
 	}
@@ -62,7 +62,7 @@ func (s *Secrets) GetSecret(authType string) (any, error) {
 	res, err := client.AccessSecretVersion(ctx, req)
 	if err != nil {
 		customMsg = "failed to access secret version"
-		utils.WriteGatewayAudit(fmt.Sprintf("%s: %v", customMsg, err.Error()), customAction)
+		utils.WriteGatewayAudit(fmt.Sprintf("%s: %v", customMsg, err.Error()), customAction, "GET")
 
 		return nil, fmt.Errorf("failed to access secret version: %v", err)
 	}
@@ -81,7 +81,7 @@ func (s *Secrets) GetSecret(authType string) (any, error) {
 	}
 
 	customMsg = "unable to determine auth type: %s"
-	utils.WriteGatewayAudit(fmt.Sprintf(customMsg, authType), customAction)
+	utils.WriteGatewayAudit(fmt.Sprintf(customMsg, authType), customAction, "GET")
 
 	return nil, fmt.Errorf("unable to determine auth type")
 }
@@ -100,7 +100,7 @@ func (s *Secrets) CreateSecret(parent, secretID, payload string) (string, error)
 		//	1. Google application credentials failed
 		//	2. Secret already exists
 		customMsg = "failed to create secretmanager client"
-		utils.WriteGatewayAudit(fmt.Sprintf("%s: %v", customMsg, err.Error()), customAction)
+		utils.WriteGatewayAudit(fmt.Sprintf("%s: %v", customMsg, err.Error()), customAction, "POST")
 
 		return "", fmt.Errorf("%s: %v", customMsg, err)
 	}
@@ -123,7 +123,7 @@ func (s *Secrets) CreateSecret(parent, secretID, payload string) (string, error)
 	result, err := client.CreateSecret(ctx, secretReq)
 	if err != nil {
 		customMsg = "failed to create secret"
-		utils.WriteGatewayAudit(fmt.Sprintf("%s: %v", customMsg, err.Error()), customAction)
+		utils.WriteGatewayAudit(fmt.Sprintf("%s: %v", customMsg, err.Error()), customAction, "POST")
 
 		return "", fmt.Errorf("%s: %v", customMsg, err)
 	}
@@ -139,7 +139,7 @@ func (s *Secrets) CreateSecret(parent, secretID, payload string) (string, error)
 	_, err = client.AddSecretVersion(ctx, versionReq)
 	if err != nil {
 		customMsg = "failed to create secret"
-		utils.WriteGatewayAudit(fmt.Sprintf("%s: %v", customMsg, err.Error()), customAction)
+		utils.WriteGatewayAudit(fmt.Sprintf("%s: %v", customMsg, err.Error()), customAction, "POST")
 
 		return "", fmt.Errorf("%s: %v", customMsg, err)
 	}
@@ -158,7 +158,7 @@ func (s *Secrets) UpdateSecret(parent, secretID, payload string) (string, error)
 	client, err := secretmanager.NewClient(ctx)
 	if err != nil {
 		customMsg = "failed to create secretmanager client"
-		utils.WriteGatewayAudit(fmt.Sprintf("%s: %v", customMsg, err.Error()), customAction)
+		utils.WriteGatewayAudit(fmt.Sprintf("%s: %v", customMsg, err.Error()), customAction, "PATCH")
 		return "", fmt.Errorf("%s: %v", customMsg, err)
 	}
 	defer client.Close()
@@ -174,7 +174,7 @@ func (s *Secrets) UpdateSecret(parent, secretID, payload string) (string, error)
 	_, err = client.AddSecretVersion(ctx, versionReq)
 	if err != nil {
 		customMsg = "failed to add a new secret version"
-		utils.WriteGatewayAudit(fmt.Sprintf("%s: %v", customMsg, err.Error()), customAction)
+		utils.WriteGatewayAudit(fmt.Sprintf("%s: %v", customMsg, err.Error()), customAction, "PATCH")
 
 		return "", fmt.Errorf("%s: %v", customMsg, err)
 	}
@@ -193,7 +193,7 @@ func (s *Secrets) AddSecretVersion(path string, payload []byte) (string, error) 
 	client, err := secretmanager.NewClient(ctx)
 	if err != nil {
 		customMsg = "failed to create secret"
-		utils.WriteGatewayAudit(fmt.Sprintf("%s: %v", customMsg, err.Error()), customAction)
+		utils.WriteGatewayAudit(fmt.Sprintf("%s: %v", customMsg, err.Error()), customAction, "PATCH")
 
 		return "", fmt.Errorf("%s: %v", customMsg, err)
 	}
@@ -209,7 +209,7 @@ func (s *Secrets) AddSecretVersion(path string, payload []byte) (string, error) 
 	result, err := client.AddSecretVersion(ctx, req)
 	if err != nil {
 		customMsg = "failed to add secret version"
-		utils.WriteGatewayAudit(fmt.Sprintf("%s: %v", customMsg, err.Error()), customAction)
+		utils.WriteGatewayAudit(fmt.Sprintf("%s: %v", customMsg, err.Error()), customAction, "PATCH")
 
 		return "", fmt.Errorf("%s: %v", customMsg, err)
 	}
@@ -227,7 +227,7 @@ func (s *Secrets) DeleteSecret(secretID string) error {
 	client, err := secretmanager.NewClient(ctx)
 	if err != nil {
 		customMsg = "failed to create secretmanager client"
-		utils.WriteGatewayAudit(fmt.Sprintf("%s: %v", customMsg, err.Error()), customAction)
+		utils.WriteGatewayAudit(fmt.Sprintf("%s: %v", customMsg, err.Error()), customAction, "DELETE")
 
 		return fmt.Errorf("%s: %v", customMsg, err)
 	}
@@ -239,7 +239,7 @@ func (s *Secrets) DeleteSecret(secretID string) error {
 
 	if err := client.DeleteSecret(ctx, req); err != nil {
 		customMsg = "failed to delete secret"
-		utils.WriteGatewayAudit(fmt.Sprintf("%s: %v", customMsg, err.Error()), customAction)
+		utils.WriteGatewayAudit(fmt.Sprintf("%s: %v", customMsg, err.Error()), customAction, "DELETE")
 
 		return fmt.Errorf("%s: %v", customMsg, err)
 	}

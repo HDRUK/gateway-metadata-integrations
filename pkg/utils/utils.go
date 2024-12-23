@@ -112,7 +112,7 @@ func GetServiceUserJWT() (string, error) {
 
 // WriteGatewayAudit Helper function to write logs to the gateway api audit
 // log
-func WriteGatewayAudit(message, actionType string) {
+func WriteGatewayAudit(message, actionType string, actionName string) {
 	enabled, err := strconv.Atoi(os.Getenv("AUDIT_LOG_ENABLED"))
 	if err != nil {
 		enabled = 0 // couldn't read config, so avoid spamming the API
@@ -132,6 +132,8 @@ func WriteGatewayAudit(message, actionType string) {
 	}
 	defer client.Close()
 
+	microseconds := time.Now().UnixMicro() / 1000
+
 	payload := []byte(
 		fmt.Sprintf(`{
 			"user_id": %d,
@@ -139,8 +141,9 @@ func WriteGatewayAudit(message, actionType string) {
 			"description": "%s",
 			"action_type": "%s",
 			"action_service": "%s",
+			"action_name": "%s",
 			"created_at": %d
-		}`, -99, -99, message, actionType, "GMI2", time.Now().UnixMicro()))
+		}`, -99, -99, message, actionType, "GMI2", actionName, microseconds))
 
 	pubSubMessage := &pubsub.Message{Data: payload}
 
