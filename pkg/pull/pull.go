@@ -277,7 +277,7 @@ func (p *Pull) CallForList() (pkg.FederationResponse, error) {
 		InvalidateFederationDueToFailure(p.ID)
 
 		customMsg = "non 200 status returned %d - flagging federation as invalid. error: %v"
-		utils.WriteGatewayAudit(fmt.Sprintf(customMsg, result.StatusCode, err.Error()), customAction, "GET")
+		utils.WriteGatewayAudit(fmt.Sprintf(customMsg, result.StatusCode, "n/a"), customAction, "GET")
 
 		if p.Verbose {
 			fmt.Printf("non 200 status returned %d flagging federation as invalid. Error: %v", result.StatusCode, err)
@@ -368,7 +368,7 @@ func (p *Pull) CallForDataset(id string) (map[string]interface{}, error) {
 		InvalidateFederationDueToFailure(p.ID)
 
 		customMsg = "non 200 status returned %s flagging federation as invalid. Error: %v"
-		utils.WriteGatewayAudit(fmt.Sprintf("%s: %v", customMsg, err.Error()), customAction, "GET")
+		utils.WriteGatewayAudit(fmt.Sprintf("%s: %v", customMsg, "n/a"), customAction, "GET")
 
 		if p.Verbose {
 			fmt.Printf("non 200 status returned %d flagging federation as invalid. Error: %v", result.StatusCode, err)
