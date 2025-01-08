@@ -132,7 +132,7 @@ func WriteGatewayAudit(message, actionType string, actionName string) {
 	}
 	defer client.Close()
 
-	microseconds := time.Now().UnixMicro() / 1000
+	microseconds := time.Now().UnixMicro()
 
 	payload := []byte(
 		fmt.Sprintf(`{
