@@ -243,7 +243,10 @@ func (p *Pull) CallForList() (pkg.FederationResponse, error) {
 	req, err := http.NewRequest("GET", p.DatasetsUri, nil)
 	if err != nil {
 		customMsg = "unable to form new request: %v"
-		utils.WriteGatewayAudit(fmt.Sprintf(customMsg, err.Error()), customAction, "GET")
+		errorString := err.Error()
+		errorString = strings.ReplaceAll(errorString, "'", "\\'")
+		errorString = strings.ReplaceAll(errorString, "/", "\\/")
+		utils.WriteGatewayAudit(fmt.Sprintf(customMsg, errorString), customAction, "GET")
 
 		if p.Verbose {
 			fmt.Println(fmt.Sprintf(customMsg, err.Error()))
