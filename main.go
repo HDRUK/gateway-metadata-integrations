@@ -16,7 +16,7 @@ import (
 func main() {
 	err := godotenv.Load()
 	if err != nil {
-		utils.WriteGatewayAudit("can't read .env file. resorting to OS variables", "CONFIG")
+		utils.WriteGatewayAudit("can't read .env file. resorting to OS variables", "CONFIG", "")
 	}
 
 	debugLogs, err := strconv.Atoi(os.Getenv("DEBUG_LOGGING"))
@@ -24,7 +24,7 @@ func main() {
 		debugLogs = 0 // could not load config, err on side of fewer logs
 	}
 
-	if (debugLogs == 1) {
+	if debugLogs == 1 {
 		slog.SetLogLoggerLevel(slog.LevelDebug)
 	} else {
 		slog.SetLogLoggerLevel(slog.LevelInfo)
