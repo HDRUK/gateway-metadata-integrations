@@ -71,12 +71,6 @@ jobs:
           workload_identity_provider: "${{ secrets.WIF_PROVIDER }}"
           service_account: "${{ secrets.WIF_SERVICE_ACCOUNT }}"
 
-      - name: "Set up Cloud SDK"
-        id: setupsdk
-        uses: "google-github-actions/setup-gcloud@v1"
-        with:
-          version: ">= 363.0.0"
-
       - name: "Use gcloud CLI to download the models from google storage bucket"
         id: copymodel
         run: gsutil -m cp -r '${{ secrets.BUCKET_PATH }}' .
