@@ -71,10 +71,6 @@ jobs:
           workload_identity_provider: "${{ secrets.WIF_PROVIDER }}"
           service_account: "${{ secrets.WIF_SERVICE_ACCOUNT }}"
 
-      - name: "Use gcloud CLI to download the models from google storage bucket"
-        id: copymodel
-        run: gsutil -m cp -r '${{ secrets.BUCKET_PATH }}' .
-
       - name: Login to GAR
         id: garlogin
         uses: docker/login-action@v2
