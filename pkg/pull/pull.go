@@ -748,6 +748,9 @@ func Run() {
 				continue
 			}
 
+			//traser does not this anymore
+			delete(dataset, "version")
+
 			jsonString, err := json.Marshal(dataset)
 			if err != nil {
 				InvalidateFederationDueToFailure(fed.ID)
