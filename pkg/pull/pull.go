@@ -227,8 +227,17 @@ func (p *Pull) TestDatasetsEndpoint() gin.H {
 		return returnFailedValidation()
 	}
 
-	if len(list.Items) == 0 || result.StatusCode != 200 {
+	if result.StatusCode != 200 {
 		return checkStatus(result.StatusCode)
+	}
+
+	if len(list.Items) == 0 {
+		customMsg := fmt.Sprintf("There are no datasets listed in your federation endpoint!")
+
+		return utils.FormResponse(500,
+			false,
+			"Federation error",
+			customMsg)
 	}
 
 	for _, item := range list.Items {
@@ -532,7 +541,13 @@ func (p *Pull) DeleteTeamDataset(teamId int, pid string) error {
 		return fmt.Errorf("failed to marshal login payload: %v", err)
 	}
 
-	req, err := http.NewRequest("DELETE", fmt.Sprintf("%s/%s/%s/%s", os.Getenv("GATEWAY_API_URL"), "federations", "delete", pid), bytes.NewBuffer(jsonPayload))
+	req, err := http.NewRequest("DELETE",
+		fmt.Sprintf("%s/%s/%s/%s",
+			os.Getenv("GATEWAY_API_URL"),
+			"federations",
+			"delete",
+			pid,
+		), bytes.NewBuffer(jsonPayload))
 	req.Header.Add("Authorization", fmt.Sprintf("Bearer %s", token))
 
 	if err != nil {
