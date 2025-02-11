@@ -50,9 +50,7 @@ func TestFederationHandler(c *gin.Context) {
 
 	response = p.TestDatasetsEndpoint()
 
-	fmt.Printf("Response received: %+v\n", response)
 	if val, ok := response.(gin.H)["errors"]; ok && val != "" {
-		fmt.Printf("got error back!!!\n")
 		c.JSON(http.StatusOK, response)
 		return
 	}

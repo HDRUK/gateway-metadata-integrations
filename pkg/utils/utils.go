@@ -58,9 +58,9 @@ func FindMissingElements(list1, list2 []string) []string {
 	}
 	missingElements := []string{}
 	for _, elem := range list1 {
-		//if _, exists := list2Map[elem]; !exists {
-		missingElements = append(missingElements, elem)
-		//}
+		if _, exists := list2Map[elem]; !exists {
+			missingElements = append(missingElements, elem)
+		}
 	}
 	return missingElements
 }
