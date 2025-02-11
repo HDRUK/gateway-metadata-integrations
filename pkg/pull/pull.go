@@ -232,7 +232,7 @@ func (p *Pull) TestDatasetsEndpoint() gin.H {
 	}
 
 	if len(list.Items) == 0 {
-		customMsg := fmt.Sprintf("There are no datasets listed in your federation endpoint!")
+		customMsg := "There are no datasets listed in your federation endpoint!"
 
 		return utils.FormResponse(500,
 			false,
