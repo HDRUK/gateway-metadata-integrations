@@ -227,8 +227,41 @@ func (p *Pull) TestDatasetsEndpoint() gin.H {
 		return returnFailedValidation()
 	}
 
-	if len(list.Items) >= 0 {
+	if len(list.Items) == 0 || result.StatusCode != 200 {
 		return checkStatus(result.StatusCode)
+	}
+
+	for _, item := range list.Items {
+		pid := item.PersistentID
+		version := item.Version
+
+		dataset, err := p.CallForDataset(pid)
+		if err != nil {
+			customMsg := fmt.Sprintf("failed to retrieve dataset for pid %s: %v", pid, err)
+
+			return utils.FormResponse(500,
+				false,
+				"Internal Server Error",
+				customMsg)
+		}
+
+		fmt.Printf("%v --- \n", dataset)
+
+		if version != dataset["version"] {
+			return utils.FormResponse(400,
+				false,
+				"Test Unsuccessful",
+				fmt.Errorf("version mismatch: expected %s, but got %s", version, dataset["version"]).Error())
+		}
+
+		_, err = json.Marshal(dataset)
+		if err != nil {
+			return utils.FormResponse(500,
+				false,
+				"Internal Server Error",
+				fmt.Errorf("failed to marshal dataset to JSON: %v", err).Error())
+		}
+
 	}
 
 	return checkStatus(result.StatusCode)
@@ -337,6 +370,8 @@ func (p *Pull) CallForDataset(id string) (map[string]interface{}, error) {
 
 	datasetUriWithId := strings.ReplaceAll(p.DatasetUri, "{id}", id)
 
+	fmt.Printf("\n\n %s \n\n", datasetUriWithId)
+
 	req, err := http.NewRequest("GET", datasetUriWithId, nil)
 	if err != nil {
 		customMsg = "unable to form new request with following error"
@@ -356,7 +391,7 @@ func (p *Pull) CallForDataset(id string) (map[string]interface{}, error) {
 			fmt.Printf("http call timedout %v", err.Error())
 		}
 
-		return map[string]interface{}{}, err
+		return map[string]interface{}{}, fmt.Errorf(customMsg)
 	}
 
 	if err != nil {
@@ -370,14 +405,14 @@ func (p *Pull) CallForDataset(id string) (map[string]interface{}, error) {
 	if !utils.IsSuccessfulStatusCode(result.StatusCode) {
 		InvalidateFederationDueToFailure(p.ID)
 
-		customMsg = "non 200 status returned %s flagging federation as invalid. Error: %v"
-		utils.WriteGatewayAudit(fmt.Sprintf("%s: %v", customMsg, "n/a"), customAction, "GET")
+		customMsg = fmt.Sprintf("non-200 status returned: %d. Flagging federation as invalid.", result.StatusCode)
+		utils.WriteGatewayAudit(customMsg, customAction, "GET")
 
 		if p.Verbose {
-			fmt.Printf("non 200 status returned %d flagging federation as invalid. Error: %v", result.StatusCode, err)
+			fmt.Printf("%s\n", customMsg)
 		}
 
-		return map[string]interface{}{}, err
+		return map[string]interface{}{}, fmt.Errorf(customMsg)
 	}
 
 	if p.Verbose {
@@ -834,7 +869,7 @@ func returnFailedValidation() gin.H {
 func checkStatus(statusCode int) gin.H {
 	switch statusCode {
 	case 200:
-		return utils.FormResponse(statusCode, true, "Test Successful", "nil")
+		return utils.FormResponse(statusCode, true, "Test Successful", "")
 	case 400:
 		return utils.FormResponse(statusCode, false, "Test Unsuccessful", fmt.Errorf("%s", "request received HTTP 400 (Bad Request)").Error())
 	case 401:
