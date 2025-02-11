@@ -254,8 +254,6 @@ func (p *Pull) TestDatasetsEndpoint() gin.H {
 				customMsg)
 		}
 
-		fmt.Printf("%v --- \n", dataset)
-
 		if version != dataset["version"] {
 			return utils.FormResponse(400,
 				false,
