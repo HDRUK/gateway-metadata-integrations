@@ -544,6 +544,7 @@ func (p *Pull) DeleteTeamDataset(teamId int, pid string) error {
 			"delete",
 			pid,
 		), bytes.NewBuffer(jsonPayload))
+	req.Header.Add("Content-Type", "application/json")
 	req.Header.Add("Authorization", fmt.Sprintf("Bearer %s", token))
 
 	if err != nil {
@@ -593,7 +594,6 @@ func (p *Pull) CreateOrUpdateTeamDataset(teamId string, pid string, metadata str
 		fmt.Printf("---> creating a new dataset! \n")
 	}
 
-	fmt.Println("JSON Payload:", string(jsonPayload))
 	req, err := http.NewRequest(method, url,
 		bytes.NewBuffer(jsonPayload),
 	)
