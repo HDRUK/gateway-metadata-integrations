@@ -377,8 +377,6 @@ func (p *Pull) CallForDataset(id string) (map[string]interface{}, error) {
 
 	datasetUriWithId := strings.ReplaceAll(p.DatasetUri, "{id}", id)
 
-	fmt.Printf("\n\n %s \n\n", datasetUriWithId)
-
 	req, err := http.NewRequest("GET", datasetUriWithId, nil)
 	if err != nil {
 		customMsg = "unable to form new request with following error"
@@ -595,6 +593,7 @@ func (p *Pull) CreateOrUpdateTeamDataset(teamId string, pid string, metadata str
 		fmt.Printf("---> creating a new dataset! \n")
 	}
 
+	fmt.Println("JSON Payload:", string(jsonPayload))
 	req, err := http.NewRequest(method, url,
 		bytes.NewBuffer(jsonPayload),
 	)
