@@ -18,11 +18,6 @@ func ValidateSchema(document string) (bool, error) {
 
 	schemaLoader := gojsonschema.NewReferenceLoader(schemaUrl)
 	documentLoader := gojsonschema.NewStringLoader(document)
-	fmt.Printf("schemaUrl %s: \n", schemaUrl)
-	fmt.Printf("document %s: \n", document)
-
-	fmt.Printf("schemaLoader %s: \n", schemaLoader)
-	fmt.Printf("documentLoader %s: \n", documentLoader)
 	result, err := gojsonschema.Validate(schemaLoader, documentLoader)
 	if err != nil {
 		return false, err
