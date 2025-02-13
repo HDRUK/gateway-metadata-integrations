@@ -297,9 +297,9 @@ func (p *Pull) CallForList() (pkg.FederationResponse, error) {
 
 	result, err := Client.Do(req)
 	if err != nil {
-		customMsg = "http call failed"
+		customMsg = "auth call failed"
 		if os.IsTimeout(err) {
-			customMsg = "http call timed out"
+			customMsg = "auth call timed out"
 		}
 		utils.WriteGatewayAudit(fmt.Sprintf("%s: %v", customMsg, err.Error()), customAction, "GET")
 
