@@ -477,7 +477,7 @@ func (p *Pull) GetTeamDatasetsGMI(teamId int) (pkg.DatasetsVersions, error) {
 	customAction := "GetTeamDatasetsGMI"
 
 	url := fmt.Sprintf("%s/%s?team_id=%d&create_origin=%s&onlyDatasets=true", os.Getenv("GATEWAY_API_URL"), "datasets", teamId, "GMI")
-
+	fmt.Printf("<<<<<<<<<<<<GetTeamDatasetsGMI<url=%s \n", url)
 	req, err := http.NewRequest("GET", url, nil)
 
 	if err != nil {
