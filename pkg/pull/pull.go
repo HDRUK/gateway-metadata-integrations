@@ -212,6 +212,7 @@ func (p *Pull) TestCredentials() gin.H {
 // if the returned status code is 200. False otherwise.
 func (p *Pull) TestDatasetsEndpoint() gin.H {
 	req, err := http.NewRequest("GET", p.DatasetsUri, nil)
+	fmt.Println("Testing Endpoint")
 	if err != nil {
 		return utils.FormResponse(pkg.ERROR_INVALID_HTTP_REQUEST, false, "Endpoints Test", err.Error())
 	}
@@ -272,7 +273,7 @@ func (p *Pull) TestDatasetsEndpoint() gin.H {
 		}
 
 	}
-
+	fmt.Println("status reached")
 	return checkStatus(result.StatusCode)
 }
 
