@@ -117,6 +117,8 @@ func GetGatewayFederations() ([]pkg.Federation, error) {
 // to false - so that it's updated in gateway frontend and the user can determine
 // the cause of the issue before testing again
 func InvalidateFederationDueToFailure(fed int) bool {
+
+	fmt.Printf("Stopping federation for : %d\n", fed)
 	var customMsg string
 	customAction := "InvalidateFederationDueToFailure"
 
@@ -283,87 +285,80 @@ func (p *Pull) CallForList() (pkg.FederationResponse, error) {
 	req, err := http.NewRequest("GET", p.DatasetsUri, nil)
 	if err != nil {
 		customMsg = "unable to form new request: %v"
-		errorString := err.Error()
-		errorString = strings.ReplaceAll(errorString, "'", "\\'")
-		errorString = strings.ReplaceAll(errorString, "/", "\\/")
-		utils.WriteGatewayAudit(fmt.Sprintf(customMsg, errorString), customAction, "GET")
+		utils.WriteGatewayAudit(fmt.Sprintf(customMsg, err.Error()), customAction, "GET")
 
 		if p.Verbose {
 			fmt.Println(fmt.Sprintf(customMsg, err.Error()))
 		}
+		return pkg.FederationResponse{}, err
 	}
 
 	p.GenerateHeaders(req)
 
 	result, err := Client.Do(req)
-	if os.IsTimeout(err) {
-		customMsg = "http call timed out"
-		utils.WriteGatewayAudit(fmt.Sprintf("%s %v", customMsg, err.Error()), customAction, "GET")
-
-		if p.Verbose {
-			fmt.Printf("http call timedout %v", err.Error())
-		}
-
-		return pkg.FederationResponse{}, err
-	}
 	if err != nil {
-		customMsg = "auth call failed with error: "
-		utils.WriteGatewayAudit(fmt.Sprintf("%s %v", customMsg, err.Error()), customAction, "GET")
+		customMsg = "http call failed"
+		if os.IsTimeout(err) {
+			customMsg = "http call timed out"
+		}
+		utils.WriteGatewayAudit(fmt.Sprintf("%s: %v", customMsg, err.Error()), customAction, "GET")
 
 		if p.Verbose {
-			fmt.Printf("auth call failed with error %s\n", err)
+			fmt.Printf("%s: %v\n", customMsg, err)
 		}
+		return pkg.FederationResponse{}, err
 	}
 	defer result.Body.Close()
 
 	if !utils.IsSuccessfulStatusCode(result.StatusCode) {
 		InvalidateFederationDueToFailure(p.ID)
 
-		customMsg = "non 200 status returned %d - flagging federation as invalid. error: %v"
-		utils.WriteGatewayAudit(fmt.Sprintf(customMsg, result.StatusCode, "n/a"), customAction, "GET")
+		customMsg = "non-200 status returned %d - flagging federation as invalid"
+		utils.WriteGatewayAudit(fmt.Sprintf(customMsg, result.StatusCode), customAction, "GET")
 
 		if p.Verbose {
-			fmt.Printf("non 200 status returned %d flagging federation as invalid. Error: %v", result.StatusCode, err)
+			fmt.Printf("non-200 status returned %d, flagging federation as invalid.\n", result.StatusCode)
 		}
-
-		return pkg.FederationResponse{}, err
+		return pkg.FederationResponse{}, fmt.Errorf("HTTP request failed with status code %d", result.StatusCode)
 	}
 
 	if p.Verbose {
-		fmt.Printf("running call against %s\n", p.DatasetsUri)
+		fmt.Printf("Running call against %s\n", p.DatasetsUri)
 	}
 
 	body, err := io.ReadAll(result.Body)
 	if err != nil {
-		customMsg = "unable to read body of call"
+		customMsg = "unable to read body of response"
 		utils.WriteGatewayAudit(fmt.Sprintf("%s: %v", customMsg, err.Error()), customAction, "GET")
 
 		if p.Verbose {
-			fmt.Printf("unable to read body of call %v\n", err)
+			fmt.Printf("%s: %v\n", customMsg, err)
 		}
+		return pkg.FederationResponse{}, err
 	}
 
-	// Ensure the returned payload from http call can be
-	// validated against our schema
+	// Ensure the returned payload from http call can be validated against our schema
 	res, err := validator.ValidateSchema(string(body))
-	if !res {
+	if !res || err != nil {
+		customMsg = "unable to validate incoming data against schema"
+		utils.WriteGatewayAudit(fmt.Sprintf("%s: %v", customMsg, err), customAction, "GET")
+
 		if p.Verbose {
-			fmt.Printf("unable to validate incoming data against our schema %v\n", err)
+			fmt.Printf("%s: %v\n", customMsg, err)
 		}
-		if err != nil {
-			return pkg.FederationResponse{}, err
-		}
+		return pkg.FederationResponse{}, fmt.Errorf("schema validation failed: %v", err)
 	}
 
 	var fedList pkg.FederationResponse
 	err = json.Unmarshal(body, &fedList)
 	if err != nil {
-		customMsg = "unable to unmarshal body response of call"
+		customMsg = "unable to unmarshal response body"
 		utils.WriteGatewayAudit(fmt.Sprintf("%s: %v", customMsg, err.Error()), customAction, "GET")
 
 		if p.Verbose {
-			fmt.Printf("unable to unmarshal body response of call %v\n", err)
+			fmt.Printf("%s: %v\n", customMsg, err)
 		}
+		return pkg.FederationResponse{}, err
 	}
 
 	return fedList, nil
@@ -718,6 +713,7 @@ func Run() {
 
 		list, err := p.CallForList()
 		if err != nil {
+			fmt.Printf("errors: %s\n", err)
 			// Invalidate this federation as it has received an error
 			InvalidateFederationDueToFailure(fed.ID)
 
@@ -727,6 +723,8 @@ func Run() {
 			if p.Verbose {
 				fmt.Printf("%v\n", fmt.Errorf("unable to validate provided payload against our schema: %v", err))
 			}
+			return // stop actually doing things?!?!?
+
 		}
 
 		if p.Verbose {
@@ -774,6 +772,7 @@ func Run() {
 
 			dataset, err := p.CallForDataset(pid)
 			if err != nil {
+				fmt.Printf("errors: %s\n", err)
 				InvalidateFederationDueToFailure(fed.ID)
 
 				customMsg = "unable to pull invidual dataset"
@@ -782,6 +781,7 @@ func Run() {
 				if p.Verbose {
 					fmt.Printf("%v\n", fmt.Errorf("unable to pull individual dataset: %v", err))
 				}
+				return // stop doing things plz
 			}
 
 			if version != dataset["version"] {
@@ -797,6 +797,7 @@ func Run() {
 
 			jsonString, err := json.Marshal(dataset)
 			if err != nil {
+				fmt.Printf("errors: %s\n", err)
 				InvalidateFederationDueToFailure(fed.ID)
 
 				customMsg = "unable to marshal dataset response to json"
@@ -805,6 +806,7 @@ func Run() {
 				if p.Verbose {
 					fmt.Printf("%v\n", fmt.Errorf("unable to marshal dataset to json: %v", err))
 				}
+				return // stop doing things plz
 			}
 
 			//check if the dataset is already in the gateway
