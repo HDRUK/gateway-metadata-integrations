@@ -864,7 +864,7 @@ func isTimeToRun(fed *pkg.Federation) bool {
 
 	dt := time.Now().In(loc)
 
-	// for testing switch to false then it will only care about the hour
+	// for testing change env to false then it will only care about the hour
 	ignoreMinutes := os.Getenv("IGNORE_MINUTES") == "true"
 
 	// for some reason RunTimeMinute is returned as a string
