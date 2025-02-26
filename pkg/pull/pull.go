@@ -864,13 +864,31 @@ func isTimeToRun(fed *pkg.Federation) bool {
 
 	dt := time.Now().In(loc)
 
-	if dt.Hour() != fed.RunTimeHour {
-		customMsg = "current federation (%d) is not ready to run (current hour: %d) vs (configured hour: %d)"
-		utils.WriteGatewayAudit(fmt.Sprintf(customMsg, fed.ID, fed.RunTimeHour, dt.Hour()), customAction, "")
+	// for testing switch to false then it will only care about the hour
+	ignoreMinutes := os.Getenv("IGNORE_MINUTES") == "true"
+
+	// for some reason RunTimeMinute is returned as a string
+	runTimeMinute, err := strconv.Atoi(fed.RunTimeMinute)
+	if err != nil {
+		customMsg = "Invalid RunTimeMinute value for federation (%d): %s"
+		utils.WriteGatewayAudit(fmt.Sprintf(customMsg, fed.ID, fed.RunTimeMinute), customAction, "")
 		return false
 	}
 
-	return true
+	if ignoreMinutes {
+		if dt.Hour() == fed.RunTimeHour {
+			return true
+		}
+	} else {
+		if dt.Hour() == fed.RunTimeHour && dt.Minute() == runTimeMinute {
+			return true
+		}
+	}
+
+	customMsg = "current federation (%d) is not ready to run (current time: %02d:%02d) vs (configured time: %02d:%02d)"
+	utils.WriteGatewayAudit(fmt.Sprintf(customMsg, fed.ID, dt.Hour(), dt.Minute(), fed.RunTimeHour, fed.RunTimeMinute), customAction, "")
+
+	return false
 }
 
 func returnFailedValidation() gin.H {
