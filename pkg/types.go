@@ -10,6 +10,7 @@ type Federation struct {
 	EndpointDatasets string `json:"endpoint_datasets"`
 	EndpointDataset  string `json:"endpoint_dataset"`
 	RunTimeHour      int    `json:"run_time_hour"`
+	RunTimeMinute    string `json:"run_time_minute"`
 	Enabled          bool   `json:"enabled"`
 	Team             []Team `json:"team"`
 }
@@ -67,16 +68,16 @@ type DeleteSecretRequest struct {
 }
 
 type Revisions struct {
-	Version        *string       `json:"version"`
-	Url            *string       `json:"url"`
+	Version *string `json:"version"`
+	Url     *string `json:"url"`
 }
 
 type FederationDataset struct {
-	Identifier        string               `json:"identifier"`
+	Identifier         string               `json:"identifier"`
 	Version            string               `json:"version"`
 	Issued             string               `json:"issued"`
 	Modified           string               `json:"modified"`
-	Revisions          []Revisions             `json:"revisions"`
+	Revisions          []Revisions          `json:"revisions"`
 	Summary            Summary              `json:"summary"`
 	Documentation      Documentation        `json:"documentation"`
 	Coverage           Coverage             `json:"coverage"`
@@ -87,9 +88,9 @@ type FederationDataset struct {
 }
 
 type Dataset struct {
-	Pid              string  						`json:"pid"`
-	Version          string 					    `json:"version"`
-	Metadata    	 map[string]interface{} 		`json:"metadata"`
+	Pid      string                 `json:"pid"`
+	Version  string                 `json:"version"`
+	Metadata map[string]interface{} `json:"metadata"`
 }
 
 type DatasetVersions struct {
@@ -97,7 +98,6 @@ type DatasetVersions struct {
 }
 
 type DatasetsVersions map[string]DatasetVersions
-
 
 type Summary struct {
 	Title        string    `json:"title"`
@@ -157,11 +157,11 @@ type FormatAndStandards struct {
 }
 
 type Observations struct {
-	ObservedNode     string `json:"observedNode"`
-	MeasuredValue    int    `json:"measuredValue"`
+	ObservedNode              string `json:"observedNode"`
+	MeasuredValue             int    `json:"measuredValue"`
 	DisambiguatingDescription string `json:"disambiguatingDescription"`
-	ObservationDate  string `json:"observationDate"`
-	MeasuredProperty string `json:"measuredProperty"`
+	ObservationDate           string `json:"observationDate"`
+	MeasuredProperty          string `json:"measuredProperty"`
 }
 
 type StructuralMetadata struct {
