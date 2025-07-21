@@ -18,6 +18,7 @@ import (
 	"time"
 
 	"github.com/gin-gonic/gin"
+	"github.com/google/uuid"
 	"github.com/joho/godotenv"
 )
 
@@ -77,7 +78,7 @@ func init() {
 
 // GetFederations Retrieves a list of active federations from the gateway-api
 // to run against during this pull cycle
-func GetGatewayFederations() ([]pkg.Federation, error) {
+func GetGatewayFederations(sessionId string) ([]pkg.Federation, error) {
 	method_name := utils.MethodName(0)
 
 	var customMsg string
@@ -87,26 +88,28 @@ func GetGatewayFederations() ([]pkg.Federation, error) {
 	
 	slog.Debug(
 		fmt.Sprintf(" --> pulling from %s \n", fmt.Sprintf("%s/%s", os.Getenv("GATEWAY_API_URL"), "federations")), 
-		"x-request-session-id", nil,
+		"x-request-session-id", sessionId,
 		"method_name", method_name,
 	)
 	if err != nil {
 		customMsg = "unable to create new request for gateway api pull"
 		slog.Debug(
 			fmt.Sprintf("%s: %v", customMsg, err.Error()), 
-			"x-request-session-id", nil, 
+			"x-request-session-id", sessionId, 
 			"method_name", method_name,
 		)
 		utils.WriteGatewayAudit(fmt.Sprintf("%s: %v", customMsg, err.Error()), customAction, "GET")
 		return []pkg.Federation{}, fmt.Errorf("%s: %v", customMsg, err)
 	}
 
+	req.Header.Add("x-request-session-id", sessionId) 
+
 	res, err := Client.Do(req)
 	if os.IsTimeout(err) {
 		customMsg = "http call timed out"
 		slog.Debug(
 			fmt.Sprintf("%s: %v", customMsg, err.Error()), 
-			"x-request-session-id", nil, 
+			"x-request-session-id", sessionId, 
 			"method_name", method_name,
 		)
 		utils.WriteGatewayAudit(fmt.Sprintf("%s %v", customMsg, err.Error()), customAction, "GET")
@@ -116,7 +119,7 @@ func GetGatewayFederations() ([]pkg.Federation, error) {
 		customMsg = "unable to pull active federations from gateway api"
 		slog.Debug(
 			fmt.Sprintf("%s: %v", customMsg, err.Error()), 
-			"x-request-session-id", nil, 
+			"x-request-session-id", sessionId, 
 			"method_name", method_name,
 		)
 		utils.WriteGatewayAudit(fmt.Sprintf("%s: %v", customMsg, err.Error()), customAction, "GET")
@@ -129,7 +132,7 @@ func GetGatewayFederations() ([]pkg.Federation, error) {
 		customMsg = "unable to read body of response from gateway api"
 		slog.Debug(
 			fmt.Sprintf("%s: %v", customMsg, err.Error()), 
-			"x-request-session-id", nil, 
+			"x-request-session-id", sessionId, 
 			"method_name", method_name,
 		)
 		utils.WriteGatewayAudit(fmt.Sprintf("%s: %v", customMsg, err.Error()), customAction, "GET")
@@ -146,12 +149,12 @@ func GetGatewayFederations() ([]pkg.Federation, error) {
 // held within gateway api, due to a failure in processing. Sets enabled, tested
 // to false - so that it's updated in gateway frontend and the user can determine
 // the cause of the issue before testing again
-func InvalidateFederationDueToFailure(fed int) bool {
+func InvalidateFederationDueToFailure(fed int, sessionId string) bool {
 	method_name := utils.MethodName(0)
 
 	slog.Debug(
 		fmt.Sprintf("Stopping federation for : %d\n", fed), 
-		"x-request-session-id", nil, 
+		"x-request-session-id", sessionId, 
 		"method_name", method_name,
 	)
 	
@@ -178,20 +181,21 @@ func InvalidateFederationDueToFailure(fed int) bool {
 		customMsg = "unable to create new request for gateway api update %v"
 		slog.Debug(
 			fmt.Sprintf("%s: %v", customMsg, err.Error()), 
-			"x-request-session-id", nil, 
+			"x-request-session-id", sessionId, 
 			"method_name", method_name,
 		)
 		utils.WriteGatewayAudit(fmt.Sprintf("%s: %v", customMsg, err.Error()), customAction, "PATCH")
 	}
 
 	req.Header.Add("Content-Type", "application/json")
+	req.Header.Add("x-request-session-id", sessionId) 
 
 	res, err := Client.Do(req)
 	if err != nil {
 		customMsg = "unable to update federation via gateway api %v"
 		slog.Debug(
 			fmt.Sprintf("%s: %v", customMsg, err.Error()), 
-			"x-request-session-id", nil, 
+			"x-request-session-id", sessionId, 
 			"method_name", method_name,
 		)
 		utils.WriteGatewayAudit(fmt.Sprintf("%s: %v", customMsg, err.Error()), customAction, "PATCH")
@@ -203,7 +207,7 @@ func InvalidateFederationDueToFailure(fed int) bool {
 		customMsg = "unable to read body of response from gateway api %v"
 		slog.Debug(
 			fmt.Sprintf("%s: %v", customMsg, err.Error()), 
-			"x-request-session-id", nil, 
+			"x-request-session-id", sessionId, 
 			"method_name", method_name,
 		)
 		utils.WriteGatewayAudit(fmt.Sprintf("%s: %v", customMsg, err.Error()), customAction, "PATCH")
@@ -436,7 +440,7 @@ func (p *Pull) CallForList() (pkg.FederationResponse, error) {
 	defer result.Body.Close()
 
 	if !utils.IsSuccessfulStatusCode(result.StatusCode) {
-		InvalidateFederationDueToFailure(p.ID)
+		InvalidateFederationDueToFailure(p.ID, p.Logging)
 
 		customMsg = "non-200 status returned %d - flagging federation as invalid"
 		slog.Debug(
@@ -576,7 +580,7 @@ func (p *Pull) CallForDataset(id string) (map[string]interface{}, error) {
 	defer result.Body.Close()
 
 	if !utils.IsSuccessfulStatusCode(result.StatusCode) {
-		InvalidateFederationDueToFailure(p.ID)
+		InvalidateFederationDueToFailure(p.ID, p.Logging)
 
 		customMsg = fmt.Sprintf("non-200 status returned: %d. Flagging federation as invalid.", result.StatusCode)
 		slog.Debug(
@@ -647,6 +651,8 @@ func (p *Pull) FindDataset(pid string) (pkg.Dataset, error) {
 		return pkg.Dataset{}, fmt.Errorf("%s: %v", customMsg, err)
 	}
 
+	req.Header.Add("x-request-session-id", p.Logging) 
+
 	res, err := Client.Do(req)
 	if os.IsTimeout(err) {
 		customMsg = "http call timed out"
@@ -704,6 +710,8 @@ func (p *Pull) GetTeamDatasetsGMI(teamId int) (pkg.DatasetsVersions, error) {
 		utils.WriteGatewayAudit(fmt.Sprintf("%s: %v", customMsg, err.Error()), customAction, "GET")
 		return pkg.DatasetsVersions{}, fmt.Errorf("%s: %v", customMsg, err)
 	}
+
+	req.Header.Add("x-request-session-id", p.Logging) 
 
 	res, err := Client.Do(req)
 	if os.IsTimeout(err) {
@@ -798,6 +806,7 @@ func (p *Pull) DeleteTeamDataset(teamId int, pid string) error {
 		), bytes.NewBuffer(jsonPayload))
 	req.Header.Add("Content-Type", "application/json")
 	req.Header.Add("Authorization", fmt.Sprintf("Bearer %s", token))
+	req.Header.Add("x-request-session-id", p.Logging) 
 
 	if err != nil {
 		customMsg = "unable to create new request for gateway api pull"
@@ -887,6 +896,7 @@ func (p *Pull) CreateOrUpdateTeamDataset(teamId string, pid string, metadata str
 		}
 	}
 	req.Header.Add("Content-Type", "application/json")
+	req.Header.Add("x-request-session-id", p.Logging) 
 
 	token, err := utils.GetServiceUserJWT()
 
@@ -958,6 +968,7 @@ func (p *Pull) CreateOrUpdateTeamDataset(teamId string, pid string, metadata str
 // Run Runs the functionality of this process
 func Run() {
 	method_name := utils.MethodName(0)
+	sessionId := uuid.New().String()
 
 	var customMsg string
 	customAction := "Run"
@@ -965,20 +976,20 @@ func Run() {
 	fmt.Println("Pulling data...")
 	slog.Debug(
 		"Running the pull service",
-		"x-request-session-id", nil, 
+		"x-request-session-id", sessionId, 
 		"method_name", method_name,
 	)
 	utils.WriteGatewayAudit("Running the pull service", customAction, "GET")
 
 	// Firstly grab a list of all active federations in the api
-	feds, err := GetGatewayFederations()
+	feds, err := GetGatewayFederations(sessionId)
 	if err != nil {
 		fmt.Printf("%v\n", err.Error())
 	}
 
 	slog.Debug(
 		fmt.Sprintf("collected %d federations", len(feds)),
-		"x-request-session-id", nil, 
+		"x-request-session-id", sessionId, 
 		"method_name", method_name,
 	)
 	utils.WriteGatewayAudit(fmt.Sprintf("collected %d federations", len(feds)), customAction, "GET")
@@ -1026,14 +1037,14 @@ func Run() {
 			accessToken,
 			fed.AuthType,
 			true,
-			"",
+			sessionId,
 		)
 
 		list, err := p.CallForList()
 		if err != nil {
 			fmt.Printf("errors: %s\n", err)
 			// Invalidate this federation as it has received an error
-			InvalidateFederationDueToFailure(fed.ID)
+			InvalidateFederationDueToFailure(fed.ID, p.Logging)
 
 			customMsg = "unable to validate provided payload against our schema"
 			slog.Debug(
@@ -1101,7 +1112,7 @@ func Run() {
 			dataset, err := p.CallForDataset(pid)
 			if err != nil {
 				fmt.Printf("errors: %s\n", err)
-				InvalidateFederationDueToFailure(fed.ID)
+				InvalidateFederationDueToFailure(fed.ID, p.Logging)
 
 				customMsg = "unable to pull invidual dataset"
 				slog.Debug(
@@ -1136,7 +1147,7 @@ func Run() {
 			jsonString, err := json.Marshal(dataset)
 			if err != nil {
 				fmt.Printf("errors: %s\n", err)
-				InvalidateFederationDueToFailure(fed.ID)
+				InvalidateFederationDueToFailure(fed.ID, p.Logging)
 
 				customMsg = "unable to marshal dataset response to json"
 				slog.Debug(
