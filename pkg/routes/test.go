@@ -6,6 +6,7 @@ import (
 	"hdruk/federated-metadata/pkg"
 	"hdruk/federated-metadata/pkg/pull"
 	"hdruk/federated-metadata/pkg/utils"
+	"log/slog"
 	"net/http"
 
 	"github.com/gin-gonic/gin"
@@ -14,6 +15,13 @@ import (
 // TestFederationHandler will single handidly test each part of operation to
 // determine a successful federation configuration.
 func TestFederationHandler(c *gin.Context) {
+	method_name := utils.MethodName(0)
+	slog.Debug(
+		"Testing federation", 
+		"x-request-session-id", c.GetHeader("x-request-session-id"),
+		"method_name", method_name,
+	)
+
 	var response interface{}
 
 	decoder := json.NewDecoder(c.Request.Body)
@@ -21,6 +29,11 @@ func TestFederationHandler(c *gin.Context) {
 
 	err := decoder.Decode(&fed)
 	if err != nil {
+		slog.Debug(
+			fmt.Sprintf("unable to decode request body: %s", err.Error()), 
+			"x-request-session-id", c.GetHeader("x-request-session-id"),
+			"method_name", method_name,
+		)
 		c.JSON(http.StatusBadRequest, utils.FormResponse(http.StatusBadRequest,
 			false,
 			"unable to decode request body",
@@ -40,6 +53,7 @@ func TestFederationHandler(c *gin.Context) {
 		fed.PID,
 		fed.AuthType,
 		false,
+		c.GetHeader("x-request-session-id"),
 	)
 
 	response = p.TestCredentials()

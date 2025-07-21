@@ -8,6 +8,7 @@ import (
 	"log/slog"
 	"net/http"
 	"os"
+	"runtime"
 	"strconv"
 	"time"
 
@@ -155,4 +156,16 @@ func WriteGatewayAudit(message, actionType string, actionName string) {
 		slog.Info(fmt.Sprintln(err.Error()))
 	}
 	slog.Debug(fmt.Sprintf("Message published, id: %s", id))
+}
+
+func MethodName(skip int) string {
+	pc, _, _, ok := runtime.Caller(skip + 1)
+	if !ok {
+			return ""
+	}
+	f := runtime.FuncForPC(pc)
+	if f == nil {
+			return ""
+	}
+	return f.Name()
 }

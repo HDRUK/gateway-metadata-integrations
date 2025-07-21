@@ -204,6 +204,7 @@ func (t *PullTestSuite) TestGenerateHeaders() {
 		"TEST-BEARER-TOKEN",
 		fed[0].AuthType,
 		false,
+		"",
 	)
 
 	t.Equal("bearer", p.Method)
@@ -220,7 +221,7 @@ func (t *PullTestSuite) TestCallForList() {
 }
 
 func (t *PullTestSuite) TestItCanValidateAgainstOurSchema() {
-	verdict, err := validator.ValidateSchema(jsonStringList)
+	verdict, err := validator.ValidateSchema(jsonStringList, "")
 	t.Nil(err)
 
 	t.Equal(true, verdict)
