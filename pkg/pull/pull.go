@@ -42,7 +42,7 @@ type Pull struct {
 	Method      string
 	Verbose     bool
 	Dataset     string
-	Logging		string
+	Logging     string
 }
 
 // NewPull Creates a new instance of Pull
@@ -85,31 +85,31 @@ func GetGatewayFederations(sessionId string) ([]pkg.Federation, error) {
 	customAction := "GetGatewayFederations"
 
 	req, err := http.NewRequest("GET", fmt.Sprintf("%s/%s", os.Getenv("GATEWAY_API_URL"), "federations"), nil)
-	
+
 	slog.Debug(
-		fmt.Sprintf(" --> pulling from %s \n", fmt.Sprintf("%s/%s", os.Getenv("GATEWAY_API_URL"), "federations")), 
+		fmt.Sprintf(" --> pulling from %s \n", fmt.Sprintf("%s/%s", os.Getenv("GATEWAY_API_URL"), "federations")),
 		"x-request-session-id", sessionId,
 		"method_name", method_name,
 	)
 	if err != nil {
 		customMsg = "unable to create new request for gateway api pull"
 		slog.Debug(
-			fmt.Sprintf("%s: %v", customMsg, err.Error()), 
-			"x-request-session-id", sessionId, 
+			fmt.Sprintf("%s: %v", customMsg, err.Error()),
+			"x-request-session-id", sessionId,
 			"method_name", method_name,
 		)
 		utils.WriteGatewayAudit(fmt.Sprintf("%s: %v", customMsg, err.Error()), customAction, "GET")
 		return []pkg.Federation{}, fmt.Errorf("%s: %v", customMsg, err)
 	}
 
-	req.Header.Add("x-request-session-id", sessionId) 
+	req.Header.Add("x-request-session-id", sessionId)
 
 	res, err := Client.Do(req)
 	if os.IsTimeout(err) {
 		customMsg = "http call timed out"
 		slog.Debug(
-			fmt.Sprintf("%s: %v", customMsg, err.Error()), 
-			"x-request-session-id", sessionId, 
+			fmt.Sprintf("%s: %v", customMsg, err.Error()),
+			"x-request-session-id", sessionId,
 			"method_name", method_name,
 		)
 		utils.WriteGatewayAudit(fmt.Sprintf("%s %v", customMsg, err.Error()), customAction, "GET")
@@ -118,8 +118,8 @@ func GetGatewayFederations(sessionId string) ([]pkg.Federation, error) {
 	if err != nil {
 		customMsg = "unable to pull active federations from gateway api"
 		slog.Debug(
-			fmt.Sprintf("%s: %v", customMsg, err.Error()), 
-			"x-request-session-id", sessionId, 
+			fmt.Sprintf("%s: %v", customMsg, err.Error()),
+			"x-request-session-id", sessionId,
 			"method_name", method_name,
 		)
 		utils.WriteGatewayAudit(fmt.Sprintf("%s: %v", customMsg, err.Error()), customAction, "GET")
@@ -131,8 +131,8 @@ func GetGatewayFederations(sessionId string) ([]pkg.Federation, error) {
 	if err != nil {
 		customMsg = "unable to read body of response from gateway api"
 		slog.Debug(
-			fmt.Sprintf("%s: %v", customMsg, err.Error()), 
-			"x-request-session-id", sessionId, 
+			fmt.Sprintf("%s: %v", customMsg, err.Error()),
+			"x-request-session-id", sessionId,
 			"method_name", method_name,
 		)
 		utils.WriteGatewayAudit(fmt.Sprintf("%s: %v", customMsg, err.Error()), customAction, "GET")
@@ -153,11 +153,11 @@ func InvalidateFederationDueToFailure(fed int, sessionId string) bool {
 	method_name := utils.MethodName(0)
 
 	slog.Debug(
-		fmt.Sprintf("Stopping federation for : %d\n", fed), 
-		"x-request-session-id", sessionId, 
+		fmt.Sprintf("Stopping federation for : %d\n", fed),
+		"x-request-session-id", sessionId,
 		"method_name", method_name,
 	)
-	
+
 	var customMsg string
 	customAction := "InvalidateFederationDueToFailure"
 
@@ -180,22 +180,22 @@ func InvalidateFederationDueToFailure(fed int, sessionId string) bool {
 	if err != nil {
 		customMsg = "unable to create new request for gateway api update %v"
 		slog.Debug(
-			fmt.Sprintf("%s: %v", customMsg, err.Error()), 
-			"x-request-session-id", sessionId, 
+			fmt.Sprintf("%s: %v", customMsg, err.Error()),
+			"x-request-session-id", sessionId,
 			"method_name", method_name,
 		)
 		utils.WriteGatewayAudit(fmt.Sprintf("%s: %v", customMsg, err.Error()), customAction, "PATCH")
 	}
 
 	req.Header.Add("Content-Type", "application/json")
-	req.Header.Add("x-request-session-id", sessionId) 
+	req.Header.Add("x-request-session-id", sessionId)
 
 	res, err := Client.Do(req)
 	if err != nil {
 		customMsg = "unable to update federation via gateway api %v"
 		slog.Debug(
-			fmt.Sprintf("%s: %v", customMsg, err.Error()), 
-			"x-request-session-id", sessionId, 
+			fmt.Sprintf("%s: %v", customMsg, err.Error()),
+			"x-request-session-id", sessionId,
 			"method_name", method_name,
 		)
 		utils.WriteGatewayAudit(fmt.Sprintf("%s: %v", customMsg, err.Error()), customAction, "PATCH")
@@ -206,8 +206,8 @@ func InvalidateFederationDueToFailure(fed int, sessionId string) bool {
 	if err != nil {
 		customMsg = "unable to read body of response from gateway api %v"
 		slog.Debug(
-			fmt.Sprintf("%s: %v", customMsg, err.Error()), 
-			"x-request-session-id", sessionId, 
+			fmt.Sprintf("%s: %v", customMsg, err.Error()),
+			"x-request-session-id", sessionId,
 			"method_name", method_name,
 		)
 		utils.WriteGatewayAudit(fmt.Sprintf("%s: %v", customMsg, err.Error()), customAction, "PATCH")
@@ -234,8 +234,8 @@ func (p *Pull) GenerateHeaders(req *http.Request) {
 	default:
 		customMsg = fmt.Sprintf("unknown auth method %s. aborting", p.Method)
 		slog.Debug(
-			fmt.Sprintf("unknown auth method %s. aborting", p.Method), 
-			"x-request-session-id", p.Logging, 
+			fmt.Sprintf("unknown auth method %s. aborting", p.Method),
+			"x-request-session-id", p.Logging,
 			"method_name", method_name,
 		)
 		utils.WriteGatewayAudit(customMsg, customAction, "")
@@ -255,8 +255,8 @@ func (p *Pull) TestCredentials() gin.H {
 	req, err := http.NewRequest("GET", p.DatasetsUri, nil)
 	if err != nil {
 		slog.Debug(
-			fmt.Sprintf("Credentials Test: %v", err.Error()), 
-			"x-request-session-id", p.Logging, 
+			fmt.Sprintf("Credentials Test: %v", err.Error()),
+			"x-request-session-id", p.Logging,
 			"method_name", method_name,
 		)
 		return utils.FormResponse(pkg.ERROR_INVALID_HTTP_REQUEST, false, "Credentials Test", err.Error())
@@ -270,8 +270,8 @@ func (p *Pull) TestCredentials() gin.H {
 	result, err := Client.Do(req)
 	if err != nil {
 		slog.Debug(
-			fmt.Sprintf("Credentials Test: %v", err.Error()), 
-			"x-request-session-id", p.Logging, 
+			fmt.Sprintf("Credentials Test: %v", err.Error()),
+			"x-request-session-id", p.Logging,
 			"method_name", method_name,
 		)
 		return utils.FormResponse(http.StatusBadRequest, false, "Credentials Test", err.Error())
@@ -291,8 +291,8 @@ func (p *Pull) TestDatasetsEndpoint() gin.H {
 
 	if err != nil {
 		slog.Debug(
-			fmt.Sprintf("Endpoints Test: %v", err.Error()), 
-			"x-request-session-id", p.Logging, 
+			fmt.Sprintf("Endpoints Test: %v", err.Error()),
+			"x-request-session-id", p.Logging,
 			"method_name", method_name,
 		)
 		return utils.FormResponse(pkg.ERROR_INVALID_HTTP_REQUEST, false, "Endpoints Test", err.Error())
@@ -303,8 +303,8 @@ func (p *Pull) TestDatasetsEndpoint() gin.H {
 	result, err := Client.Do(req)
 	if err != nil {
 		slog.Debug(
-			fmt.Sprintf("Endpoints Test: %v", err.Error()), 
-			"x-request-session-id", p.Logging, 
+			fmt.Sprintf("Endpoints Test: %v", err.Error()),
+			"x-request-session-id", p.Logging,
 			"method_name", method_name,
 		)
 		return utils.FormResponse(http.StatusBadRequest, false, "Endpoints Tests", err.Error())
@@ -324,8 +324,8 @@ func (p *Pull) TestDatasetsEndpoint() gin.H {
 		customMsg := "There are no datasets listed in your federation endpoint!"
 
 		slog.Debug(
-			customMsg, 
-			"x-request-session-id", p.Logging, 
+			customMsg,
+			"x-request-session-id", p.Logging,
 			"method_name", method_name,
 		)
 
@@ -344,8 +344,8 @@ func (p *Pull) TestDatasetsEndpoint() gin.H {
 			customMsg := fmt.Sprintf("failed to retrieve dataset for pid %s: %v", pid, err)
 
 			slog.Debug(
-				customMsg, 
-				"x-request-session-id", p.Logging, 
+				customMsg,
+				"x-request-session-id", p.Logging,
 				"method_name", method_name,
 			)
 
@@ -357,8 +357,8 @@ func (p *Pull) TestDatasetsEndpoint() gin.H {
 
 		if version != dataset["version"] {
 			slog.Debug(
-				fmt.Sprintf("version mismatch: expected %s, but got %s", version, dataset["version"]), 
-				"x-request-session-id", p.Logging, 
+				fmt.Sprintf("version mismatch: expected %s, but got %s", version, dataset["version"]),
+				"x-request-session-id", p.Logging,
 				"method_name", method_name,
 			)
 
@@ -371,8 +371,8 @@ func (p *Pull) TestDatasetsEndpoint() gin.H {
 		_, err = json.Marshal(dataset)
 		if err != nil {
 			slog.Debug(
-				fmt.Sprintf("failed to marshal dataset to JSON: %v", err.Error()), 
-				"x-request-session-id", p.Logging, 
+				fmt.Sprintf("failed to marshal dataset to JSON: %v", err.Error()),
+				"x-request-session-id", p.Logging,
 				"method_name", method_name,
 			)
 
@@ -399,8 +399,8 @@ func (p *Pull) CallForList() (pkg.FederationResponse, error) {
 		customMsg = "unable to form new request: %v"
 
 		slog.Debug(
-			fmt.Sprintf(customMsg, err.Error()), 
-			"x-request-session-id", p.Logging, 
+			fmt.Sprintf(customMsg, err.Error()),
+			"x-request-session-id", p.Logging,
 			"method_name", method_name,
 		)
 
@@ -421,13 +421,13 @@ func (p *Pull) CallForList() (pkg.FederationResponse, error) {
 			customMsg = "auth call timed out"
 			slog.Debug(
 				customMsg,
-				"x-request-session-id", p.Logging, 
+				"x-request-session-id", p.Logging,
 				"method_name", method_name,
 			)
 		}
 		slog.Debug(
-			fmt.Sprintf("%s: %v", customMsg, err.Error()), 
-			"x-request-session-id", p.Logging, 
+			fmt.Sprintf("%s: %v", customMsg, err.Error()),
+			"x-request-session-id", p.Logging,
 			"method_name", method_name,
 		)
 		utils.WriteGatewayAudit(fmt.Sprintf("%s: %v", customMsg, err.Error()), customAction, "GET")
@@ -445,7 +445,7 @@ func (p *Pull) CallForList() (pkg.FederationResponse, error) {
 		customMsg = "non-200 status returned %d - flagging federation as invalid"
 		slog.Debug(
 			fmt.Sprintf(customMsg, result.StatusCode),
-			"x-request-session-id", p.Logging, 
+			"x-request-session-id", p.Logging,
 			"method_name", method_name,
 		)
 		utils.WriteGatewayAudit(fmt.Sprintf(customMsg, result.StatusCode), customAction, "GET")
@@ -458,8 +458,8 @@ func (p *Pull) CallForList() (pkg.FederationResponse, error) {
 
 	if p.Verbose {
 		slog.Debug(
-			fmt.Sprintf("Running call against %s\n", p.DatasetsUri), 
-			"x-request-session-id", p.Logging, 
+			fmt.Sprintf("Running call against %s\n", p.DatasetsUri),
+			"x-request-session-id", p.Logging,
 			"method_name", method_name,
 		)
 		fmt.Printf("Running call against %s\n", p.DatasetsUri)
@@ -470,7 +470,7 @@ func (p *Pull) CallForList() (pkg.FederationResponse, error) {
 		customMsg = "unable to read body of response"
 		slog.Debug(
 			customMsg,
-			"x-request-session-id", p.Logging, 
+			"x-request-session-id", p.Logging,
 			"method_name", method_name,
 		)
 		utils.WriteGatewayAudit(fmt.Sprintf("%s: %v", customMsg, err.Error()), customAction, "GET")
@@ -487,7 +487,7 @@ func (p *Pull) CallForList() (pkg.FederationResponse, error) {
 		customMsg = "unable to validate incoming data against schema"
 		slog.Debug(
 			fmt.Sprintf("%s: %v", customMsg, err),
-			"x-request-session-id", p.Logging, 
+			"x-request-session-id", p.Logging,
 			"method_name", method_name,
 		)
 		utils.WriteGatewayAudit(fmt.Sprintf("%s: %v", customMsg, err), customAction, "GET")
@@ -504,7 +504,7 @@ func (p *Pull) CallForList() (pkg.FederationResponse, error) {
 		customMsg = "unable to unmarshal response body"
 		slog.Debug(
 			fmt.Sprintf("%s: %v", customMsg, err.Error()),
-			"x-request-session-id", p.Logging, 
+			"x-request-session-id", p.Logging,
 			"method_name", method_name,
 		)
 		utils.WriteGatewayAudit(fmt.Sprintf("%s: %v", customMsg, err.Error()), customAction, "GET")
@@ -525,7 +525,7 @@ func (p *Pull) CallForDataset(id string) (map[string]interface{}, error) {
 
 	slog.Debug(
 		"CallForDataset",
-		"x-request-session-id", p.Logging, 
+		"x-request-session-id", p.Logging,
 		"method_name", method_name,
 	)
 
@@ -539,7 +539,7 @@ func (p *Pull) CallForDataset(id string) (map[string]interface{}, error) {
 		customMsg = "unable to form new request with following error"
 		slog.Debug(
 			fmt.Sprintf("%s: %v", customMsg, err.Error()),
-			"x-request-session-id", p.Logging, 
+			"x-request-session-id", p.Logging,
 			"method_name", method_name,
 		)
 		utils.WriteGatewayAudit(fmt.Sprintf("%s: %v", customMsg, err.Error()), customAction, "GET")
@@ -554,7 +554,7 @@ func (p *Pull) CallForDataset(id string) (map[string]interface{}, error) {
 		customMsg = "http call timed out"
 		slog.Debug(
 			fmt.Sprintf("%s: %v", customMsg, err.Error()),
-			"x-request-session-id", p.Logging, 
+			"x-request-session-id", p.Logging,
 			"method_name", method_name,
 		)
 		utils.WriteGatewayAudit(fmt.Sprintf("%s: %v", customMsg, err.Error()), customAction, "GET")
@@ -570,7 +570,7 @@ func (p *Pull) CallForDataset(id string) (map[string]interface{}, error) {
 		customMsg = "auth call failed with error"
 		slog.Debug(
 			fmt.Sprintf("%s: %v", customMsg, err.Error()),
-			"x-request-session-id", p.Logging, 
+			"x-request-session-id", p.Logging,
 			"method_name", method_name,
 		)
 		utils.WriteGatewayAudit(fmt.Sprintf("%s: %v", customMsg, err.Error()), customAction, "GET")
@@ -585,7 +585,7 @@ func (p *Pull) CallForDataset(id string) (map[string]interface{}, error) {
 		customMsg = fmt.Sprintf("non-200 status returned: %d. Flagging federation as invalid.", result.StatusCode)
 		slog.Debug(
 			customMsg,
-			"x-request-session-id", p.Logging, 
+			"x-request-session-id", p.Logging,
 			"method_name", method_name,
 		)
 		utils.WriteGatewayAudit(customMsg, customAction, "GET")
@@ -600,7 +600,7 @@ func (p *Pull) CallForDataset(id string) (map[string]interface{}, error) {
 	if p.Verbose {
 		slog.Debug(
 			fmt.Sprintf("running call against %s\n", p.DatasetUri),
-			"x-request-session-id", p.Logging, 
+			"x-request-session-id", p.Logging,
 			"method_name", method_name,
 		)
 		fmt.Printf("running call against %s\n", p.DatasetUri)
@@ -611,7 +611,7 @@ func (p *Pull) CallForDataset(id string) (map[string]interface{}, error) {
 		customMsg = "unable to read body of call"
 		slog.Debug(
 			fmt.Sprintf("%s: %v", customMsg, err.Error()),
-			"x-request-session-id", p.Logging, 
+			"x-request-session-id", p.Logging,
 			"method_name", method_name,
 		)
 		utils.WriteGatewayAudit(fmt.Sprintf("%s: %v", customMsg, err.Error()), customAction, "GET")
@@ -631,7 +631,7 @@ func (p *Pull) FindDataset(pid string) (pkg.Dataset, error) {
 
 	slog.Debug(
 		"GetDatasetStatus",
-		"x-request-session-id", p.Logging, 
+		"x-request-session-id", p.Logging,
 		"method_name", method_name,
 	)
 
@@ -644,21 +644,21 @@ func (p *Pull) FindDataset(pid string) (pkg.Dataset, error) {
 		customMsg = "unable to create new request for gateway api pull"
 		slog.Debug(
 			fmt.Sprintf("%s: %v", customMsg, err.Error()),
-			"x-request-session-id", p.Logging, 
+			"x-request-session-id", p.Logging,
 			"method_name", method_name,
 		)
 		utils.WriteGatewayAudit(fmt.Sprintf("%s: %v", customMsg, err.Error()), customAction, "GET")
 		return pkg.Dataset{}, fmt.Errorf("%s: %v", customMsg, err)
 	}
 
-	req.Header.Add("x-request-session-id", p.Logging) 
+	req.Header.Add("x-request-session-id", p.Logging)
 
 	res, err := Client.Do(req)
 	if os.IsTimeout(err) {
 		customMsg = "http call timed out"
 		slog.Debug(
 			fmt.Sprintf("%s: %v", customMsg, err.Error()),
-			"x-request-session-id", p.Logging, 
+			"x-request-session-id", p.Logging,
 			"method_name", method_name,
 		)
 		utils.WriteGatewayAudit(fmt.Sprintf("%s %v", customMsg, err.Error()), customAction, "GET")
@@ -668,7 +668,7 @@ func (p *Pull) FindDataset(pid string) (pkg.Dataset, error) {
 		customMsg = "unable to pull active federations from gateway api"
 		slog.Debug(
 			fmt.Sprintf("%s: %v", customMsg, err.Error()),
-			"x-request-session-id", p.Logging, 
+			"x-request-session-id", p.Logging,
 			"method_name", method_name,
 		)
 		utils.WriteGatewayAudit(fmt.Sprintf("%s: %v", customMsg, err.Error()), customAction, "GET")
@@ -689,7 +689,7 @@ func (p *Pull) GetTeamDatasetsGMI(teamId int) (pkg.DatasetsVersions, error) {
 
 	slog.Debug(
 		"GetTeamDatasetsGMI",
-		"x-request-session-id", p.Logging, 
+		"x-request-session-id", p.Logging,
 		"method_name", method_name,
 	)
 
@@ -704,21 +704,21 @@ func (p *Pull) GetTeamDatasetsGMI(teamId int) (pkg.DatasetsVersions, error) {
 		customMsg = "unable to create new request for gateway api pull"
 		slog.Debug(
 			fmt.Sprintf("%s: %v", customMsg, err.Error()),
-			"x-request-session-id", p.Logging, 
+			"x-request-session-id", p.Logging,
 			"method_name", method_name,
 		)
 		utils.WriteGatewayAudit(fmt.Sprintf("%s: %v", customMsg, err.Error()), customAction, "GET")
 		return pkg.DatasetsVersions{}, fmt.Errorf("%s: %v", customMsg, err)
 	}
 
-	req.Header.Add("x-request-session-id", p.Logging) 
+	req.Header.Add("x-request-session-id", p.Logging)
 
 	res, err := Client.Do(req)
 	if os.IsTimeout(err) {
 		customMsg = "http call timed out"
 		slog.Debug(
 			fmt.Sprintf("%s: %v", customMsg, err.Error()),
-			"x-request-session-id", p.Logging, 
+			"x-request-session-id", p.Logging,
 			"method_name", method_name,
 		)
 		utils.WriteGatewayAudit(fmt.Sprintf("%s %v", customMsg, err.Error()), customAction, "GET")
@@ -728,7 +728,7 @@ func (p *Pull) GetTeamDatasetsGMI(teamId int) (pkg.DatasetsVersions, error) {
 		customMsg = "unable to pull datasets for a team from the gateway api"
 		slog.Debug(
 			fmt.Sprintf("%s: %v", customMsg, err.Error()),
-			"x-request-session-id", p.Logging, 
+			"x-request-session-id", p.Logging,
 			"method_name", method_name,
 		)
 		utils.WriteGatewayAudit(fmt.Sprintf("%s: %v", customMsg, err.Error()), customAction, "GET")
@@ -745,7 +745,7 @@ func (p *Pull) GetTeamDatasetsGMI(teamId int) (pkg.DatasetsVersions, error) {
 			customMsg = "problem with datasetVersions body"
 			slog.Debug(
 				fmt.Sprintf("%s: %v", customMsg, err.Error()),
-				"x-request-session-id", p.Logging, 
+				"x-request-session-id", p.Logging,
 				"method_name", method_name,
 			)
 			utils.WriteGatewayAudit("No existing GMI datasets found for this team", customAction, "GET")
@@ -755,7 +755,7 @@ func (p *Pull) GetTeamDatasetsGMI(teamId int) (pkg.DatasetsVersions, error) {
 		customMsg = "unable to unmarshal body response of call"
 		slog.Debug(
 			fmt.Sprintf("%s: %v", customMsg, err.Error()),
-			"x-request-session-id", p.Logging, 
+			"x-request-session-id", p.Logging,
 			"method_name", method_name,
 		)
 		utils.WriteGatewayAudit(fmt.Sprintf("%s: %v", customMsg, err.Error()), customAction, "GET")
@@ -773,7 +773,7 @@ func (p *Pull) DeleteTeamDataset(teamId int, pid string) error {
 
 	slog.Debug(
 		"DeleteTeamDataset",
-		"x-request-session-id", p.Logging, 
+		"x-request-session-id", p.Logging,
 		"method_name", method_name,
 	)
 
@@ -791,7 +791,7 @@ func (p *Pull) DeleteTeamDataset(teamId int, pid string) error {
 	if err != nil {
 		slog.Debug(
 			fmt.Sprintf("failed to marshal login payload: %v", err.Error()),
-			"x-request-session-id", p.Logging, 
+			"x-request-session-id", p.Logging,
 			"method_name", method_name,
 		)
 		return fmt.Errorf("failed to marshal login payload: %v", err)
@@ -806,13 +806,13 @@ func (p *Pull) DeleteTeamDataset(teamId int, pid string) error {
 		), bytes.NewBuffer(jsonPayload))
 	req.Header.Add("Content-Type", "application/json")
 	req.Header.Add("Authorization", fmt.Sprintf("Bearer %s", token))
-	req.Header.Add("x-request-session-id", p.Logging) 
+	req.Header.Add("x-request-session-id", p.Logging)
 
 	if err != nil {
 		customMsg = "unable to create new request for gateway api pull"
 		slog.Debug(
 			fmt.Sprintf("%s: %v", customMsg, err.Error()),
-			"x-request-session-id", p.Logging, 
+			"x-request-session-id", p.Logging,
 			"method_name", method_name,
 		)
 		utils.WriteGatewayAudit(fmt.Sprintf("%s: %v", customMsg, err.Error()), customAction, "DELETE")
@@ -824,7 +824,7 @@ func (p *Pull) DeleteTeamDataset(teamId int, pid string) error {
 		customMsg = "http call timed out"
 		slog.Debug(
 			fmt.Sprintf("%s: %v", customMsg, err.Error()),
-			"x-request-session-id", p.Logging, 
+			"x-request-session-id", p.Logging,
 			"method_name", method_name,
 		)
 		utils.WriteGatewayAudit(fmt.Sprintf("%s %v", customMsg, err.Error()), customAction, "DELETE")
@@ -834,7 +834,7 @@ func (p *Pull) DeleteTeamDataset(teamId int, pid string) error {
 		customMsg = "unable to pull datasets for a team from the gateway api"
 		slog.Debug(
 			fmt.Sprintf("%s: %v", customMsg, err.Error()),
-			"x-request-session-id", p.Logging, 
+			"x-request-session-id", p.Logging,
 			"method_name", method_name,
 		)
 		utils.WriteGatewayAudit(fmt.Sprintf("%s: %v", customMsg, err.Error()), customAction, "DELETE")
@@ -849,10 +849,10 @@ func (p *Pull) CreateOrUpdateTeamDataset(teamId string, pid string, metadata str
 
 	slog.Debug(
 		"CreateTeamDataset",
-		"x-request-session-id", p.Logging, 
+		"x-request-session-id", p.Logging,
 		"method_name", method_name,
 	)
-	
+
 	var customMsg string
 	customAction := "CreateTeamDataset"
 
@@ -886,7 +886,7 @@ func (p *Pull) CreateOrUpdateTeamDataset(teamId string, pid string, metadata str
 		customMsg = "http call timed out"
 		slog.Debug(
 			fmt.Sprintf("%s: %v", customMsg, err.Error()),
-			"x-request-session-id", p.Logging, 
+			"x-request-session-id", p.Logging,
 			"method_name", method_name,
 		)
 		utils.WriteGatewayAudit(fmt.Sprintf("%s: %v", customMsg, err.Error()), customAction, method)
@@ -896,14 +896,14 @@ func (p *Pull) CreateOrUpdateTeamDataset(teamId string, pid string, metadata str
 		}
 	}
 	req.Header.Add("Content-Type", "application/json")
-	req.Header.Add("x-request-session-id", p.Logging) 
+	req.Header.Add("x-request-session-id", p.Logging)
 
 	token, err := utils.GetServiceUserJWT()
 
 	if err != nil {
 		slog.Debug(
 			fmt.Sprintf("failed to marshal login payload: %v", err),
-			"x-request-session-id", p.Logging, 
+			"x-request-session-id", p.Logging,
 			"method_name", method_name,
 		)
 		return fmt.Errorf("failed to marshal login payload: %v", err)
@@ -915,7 +915,7 @@ func (p *Pull) CreateOrUpdateTeamDataset(teamId string, pid string, metadata str
 		customMsg = "unable to prepare gateway api call with processed dataset"
 		slog.Debug(
 			fmt.Sprintf("%s: %v", customMsg, err.Error()),
-			"x-request-session-id", p.Logging, 
+			"x-request-session-id", p.Logging,
 			"method_name", method_name,
 		)
 		utils.WriteGatewayAudit(fmt.Sprintf("%s: %v", customMsg, err.Error()), customAction, method)
@@ -932,7 +932,7 @@ func (p *Pull) CreateOrUpdateTeamDataset(teamId string, pid string, metadata str
 		customMsg = "unable to call gateway api with processed dataset"
 		slog.Debug(
 			fmt.Sprintf("%s: %v", customMsg, err.Error()),
-			"x-request-session-id", p.Logging, 
+			"x-request-session-id", p.Logging,
 			"method_name", method_name,
 		)
 		utils.WriteGatewayAudit(fmt.Sprintf("%s: %v", customMsg, err.Error()), customAction, method)
@@ -948,7 +948,7 @@ func (p *Pull) CreateOrUpdateTeamDataset(teamId string, pid string, metadata str
 		customMsg = "unable to parse body of gateway api dataset store call"
 		slog.Debug(
 			fmt.Sprintf("%s: %v", customMsg, err.Error()),
-			"x-request-session-id", p.Logging, 
+			"x-request-session-id", p.Logging,
 			"method_name", method_name,
 		)
 		utils.WriteGatewayAudit(fmt.Sprintf("%s: %v", customMsg, err.Error()), customAction, method)
@@ -976,7 +976,7 @@ func Run() {
 	fmt.Println("Pulling data...")
 	slog.Debug(
 		"Running the pull service",
-		"x-request-session-id", sessionId, 
+		"x-request-session-id", sessionId,
 		"method_name", method_name,
 	)
 	utils.WriteGatewayAudit("Running the pull service", customAction, "GET")
@@ -989,7 +989,7 @@ func Run() {
 
 	slog.Debug(
 		fmt.Sprintf("collected %d federations", len(feds)),
-		"x-request-session-id", sessionId, 
+		"x-request-session-id", sessionId,
 		"method_name", method_name,
 	)
 	utils.WriteGatewayAudit(fmt.Sprintf("collected %d federations", len(feds)), customAction, "GET")
@@ -1049,7 +1049,7 @@ func Run() {
 			customMsg = "unable to validate provided payload against our schema"
 			slog.Debug(
 				fmt.Sprintf("%s: %v", customMsg, err.Error()),
-				"x-request-session-id", p.Logging, 
+				"x-request-session-id", p.Logging,
 				"method_name", method_name,
 			)
 			utils.WriteGatewayAudit(fmt.Sprintf("%s: %v", customMsg, err.Error()), customAction, "GET")
@@ -1066,7 +1066,7 @@ func Run() {
 		}
 		slog.Debug(
 			fmt.Sprintf("Number of datasets: %d\n", len(list.Items)),
-			"x-request-session-id", p.Logging, 
+			"x-request-session-id", p.Logging,
 			"method_name", method_name,
 		)
 		utils.WriteGatewayAudit(fmt.Sprintf("Number of datasets: %d\n", len(list.Items)), customAction, "GET")
@@ -1117,7 +1117,7 @@ func Run() {
 				customMsg = "unable to pull invidual dataset"
 				slog.Debug(
 					fmt.Sprintf("%s: %v", customMsg, err.Error()),
-					"x-request-session-id", p.Logging, 
+					"x-request-session-id", p.Logging,
 					"method_name", method_name,
 				)
 				utils.WriteGatewayAudit(fmt.Sprintf("%s: %v", customMsg, err.Error()), customAction, "GET")
@@ -1134,7 +1134,7 @@ func Run() {
 				customMsg = "Version in /datasets does not match this version"
 				slog.Debug(
 					fmt.Sprintf("%s: %v", customMsg, msg),
-					"x-request-session-id", p.Logging, 
+					"x-request-session-id", p.Logging,
 					"method_name", method_name,
 				)
 				utils.WriteGatewayAudit(fmt.Sprintf("%s: %v", customMsg, msg), customAction, "GET")
@@ -1152,7 +1152,7 @@ func Run() {
 				customMsg = "unable to marshal dataset response to json"
 				slog.Debug(
 					fmt.Sprintf("%s: %v", customMsg, err.Error()),
-					"x-request-session-id", p.Logging, 
+					"x-request-session-id", p.Logging,
 					"method_name", method_name,
 				)
 				utils.WriteGatewayAudit(fmt.Sprintf("%s: %v", customMsg, err.Error()), customAction, "GET")
@@ -1229,7 +1229,7 @@ func isTimeToRun(fed *pkg.Federation) bool {
 		customMsg = "Invalid RunTimeMinute value for federation (%d): %s"
 		slog.Debug(
 			fmt.Sprintf("%s: %v", customMsg, err.Error()),
-			"x-request-session-id", nil, 
+			"x-request-session-id", nil,
 			"method_name", method_name,
 		)
 		utils.WriteGatewayAudit(fmt.Sprintf(customMsg, fed.ID, fed.RunTimeMinute), customAction, "")
@@ -1249,7 +1249,7 @@ func isTimeToRun(fed *pkg.Federation) bool {
 	customMsg = "current federation (%d) is not ready to run (current time: %02d:%02d) vs (configured time: %02d:%s)"
 	slog.Debug(
 		fmt.Sprintf(customMsg, fed.ID, dt.Hour(), dt.Minute(), fed.RunTimeHour, fed.RunTimeMinute),
-		"x-request-session-id", nil, 
+		"x-request-session-id", nil,
 		"method_name", method_name,
 	)
 	utils.WriteGatewayAudit(fmt.Sprintf(customMsg, fed.ID, dt.Hour(), dt.Minute(), fed.RunTimeHour, fed.RunTimeMinute), customAction, "")
