@@ -98,7 +98,6 @@ func GetServiceUserJWT() (string, error) {
 	}
 
 	resp, err := http.Post(authURL, "application/json", bytes.NewBuffer(payloadBytes))
-	fmt.Println(err)
 	if err != nil {
 		return "", fmt.Errorf("failed to make login request: %v", err)
 	}
