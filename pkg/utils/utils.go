@@ -8,12 +8,17 @@ import (
 	"log/slog"
 	"net/http"
 	"os"
+	"runtime"
 	"strconv"
 	"time"
 
 	"cloud.google.com/go/pubsub"
 	"github.com/gin-gonic/gin"
 )
+
+type loginResponse struct {
+	AccessToken string `json:"access_token"`
+}
 
 // HandleError Global error handler utility function
 func HandleError(message string, returnVal any) (any, error) {
@@ -67,14 +72,20 @@ func FindMissingElements(list1, list2 []string) []string {
 
 func GetServiceUserJWT() (string, error) {
 
-	email := os.Getenv("SERVICE_EMAIL")
-	password := os.Getenv("SERVICE_PASSWORD")
-
-	if email == "" || password == "" {
-		return "", fmt.Errorf("SERVICE_EMAIL and SERVICE_PASSWORD are missing")
+	email, okEmail := os.LookupEnv("SERVICE_EMAIL")
+	if !okEmail || email == "" {
+		fmt.Println("SERVICE_EMAIL is missing or empty")
 	}
 
-	authURL := os.Getenv("GATEWAY_API_AUTH_URL")
+	password, okPassword := os.LookupEnv("SERVICE_PASSWORD")
+	if !okPassword || password == "" {
+		fmt.Println("SERVICE_PASSWORD is missing or empty")
+	}
+
+	authURL, okAuthUrl := os.LookupEnv("GATEWAY_API_AUTH_URL")
+	if !okAuthUrl || authURL == "" {
+		fmt.Println("GATEWAY_API_AUTH_URL is missing or empty")
+	}
 
 	payload := map[string]string{
 		"email":    email,
@@ -96,16 +107,16 @@ func GetServiceUserJWT() (string, error) {
 		return "", fmt.Errorf("login request failed with status: %s", resp.Status)
 	}
 
-	var result map[string]string
-	err = json.NewDecoder(resp.Body).Decode(&result)
-	if err != nil {
+	var result loginResponse
+	if err = json.NewDecoder(resp.Body).Decode(&result); err != nil {
 		return "", fmt.Errorf("failed to parse login response: %v", err)
 	}
 
-	token, ok := result["access_token"]
-	if !ok {
+	token := result.AccessToken
+	if token == "" {
 		return "", fmt.Errorf("token not found in login response")
 	}
+	fmt.Printf("Access token: %s\n", token)
 
 	return token, nil
 }
@@ -155,4 +166,16 @@ func WriteGatewayAudit(message, actionType string, actionName string) {
 		slog.Info(fmt.Sprintln(err.Error()))
 	}
 	slog.Debug(fmt.Sprintf("Message published, id: %s", id))
+}
+
+func MethodName(skip int) string {
+	pc, _, _, ok := runtime.Caller(skip + 1)
+	if !ok {
+		return ""
+	}
+	f := runtime.FuncForPC(pc)
+	if f == nil {
+		return ""
+	}
+	return f.Name()
 }
