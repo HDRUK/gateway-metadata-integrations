@@ -1,3 +1,9 @@
+## [1.2.1](https://github.com/HDRUK/gateway-metadata-integrations/compare/v1.2.0...v1.2.1) (2025-07-29)
+
+### 🐛 Bug Fixes
+
+* **GAT-1234:** East Midlands SDE integration not working (#77) ([6df82f6](https://github.com/HDRUK/gateway-metadata-integrations/commit/6df82f6232de79b61b6fd84a414855478e37ab38)), closes [GAT-1234](GAT-1234)
+
 ## [1.2.0](https://github.com/HDRUK/gateway-metadata-integrations/compare/v1.1.0...v1.2.0) (2025-03-10)
 
 ### ✨ Features
